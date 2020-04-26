@@ -65,11 +65,20 @@ class Pianoroll:
         self.array = pianoroll_array
 
     def get_multitrack(self):
+        """
+        Returns the pypianoroll Multitrack representation of the midi created from the pianoroll array. This track has
+        one piano track with an assumed tempo of 120 and a beat resolution of 24.
+        """
 
         track = Track(pianoroll=self.array, program=0, is_drum=False)
+
+        m = Multitrack(tracks=[track], tempo=120, downbeat=None, beat_resolution=24)
 
         return Multitrack(tracks=[track], tempo=120, downbeat=None, beat_resolution=24)
 
     def play(self):
+        """
+        Play the notes represented in self.array as a midi audio output.
+        """
 
         play_midi_from_file(multitrack=self.get_multitrack())

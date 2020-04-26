@@ -1,41 +1,46 @@
+import tempfile
+
 import pygame
 
 
 def play_midi_from_file(midi_file_path='', multitrack=None, vol=0.5):
     """
-    Playback midi from file on disk.
+    midi_file_path: path to midi file on disc
+    multitrack: pypianoroll style multitrack instance that can be written to file
+    vol: How loudly to play, from 0.0 to 1.0
+
+    Play back midi data over computer audio by reading from file on disk or a pypianoroll multitrack instance.
     """
 
-    if midi_file_path == '':
-        midi_file_path = './.tmp.mid'
+    midi_file = midi_file_path
 
-        multitrack.write(midi_file_path)
-
-    frequency = 44100
-    bitsize = -16
-    channels = 1
-    buffer = 1024
-
-    pygame.mixer.init(frequency, bitsize, channels, buffer)
+    pygame.mixer.init(frequency=44100, size=-16, channels=1, buffer=1024)
 
     pygame.mixer.music.set_volume(vol)
 
-    try:
-        clock = pygame.time.Clock()
+    with tempfile.TemporaryFile() as temporary_midi_file:
+
+        if midi_file_path == '':
+            multitrack.to_pretty_midi().write(temporary_midi_file)
+            temporary_midi_file.seek(0)
+
+            midi_file = temporary_midi_file
 
         try:
-            pygame.mixer.music.load(midi_file_path)
-            print("Music file {file_path} loaded for playback!".format(file_path=midi_file_path))
-        except pygame.error:
-            print("File {file_path} not found:".format(file_path=midi_file_path), pygame.get_error())
-            return
+            clock = pygame.time.Clock()
 
-        pygame.mixer.music.play()
+            try:
+                pygame.mixer.music.load(midi_file)
+            except pygame.error:
+                print("File {file_path} not found:".format(file_path=midi_file_path), pygame.get_error())
+                return
 
-        while pygame.mixer.music.get_busy():
-            clock.tick(30)
+            pygame.mixer.music.play()
 
-    except KeyboardInterrupt:
-        pygame.mixer.music.fadeout(1000)
-        pygame.mixer.music.stop()
-        raise SystemExit
+            while pygame.mixer.music.get_busy():
+                clock.tick(30)
+
+        except KeyboardInterrupt:
+            pygame.mixer.music.fadeout(1000)
+            pygame.mixer.music.stop()
+            raise SystemExit
