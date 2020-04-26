@@ -82,3 +82,52 @@ class Pianoroll:
         """
 
         play_midi_from_file(multitrack=self.get_multitrack())
+
+    def stretch(self, stretch_fraction):
+        """
+        stretch_fraction: float >= 0.0 indicating how much to stretch the pianoroll
+
+        stratch_fraction = 1.0 returns the original pianoroll
+        stretch_fraction < 1.0 shortens (speeds up) the pianoroll
+        stretch_fraction > 1.0 lengthens (slows down) the pianoroll
+
+        This method modifies self.array in place.
+        """
+
+        time_steps_in_original = self.array.shape[0]
+        num_keys_in_original = self.array.shape[1]
+
+        time_steps_in_stretched = round(time_steps_in_original * stretch_fraction)
+
+        if time_steps_in_stretched == 0:
+            raise Exception("Cannot have zero timesteps in stretched pianoroll.")
+
+        stretched_pianoroll = np.zeros((time_steps_in_stretched, num_keys_in_original)).astype('bool')
+
+        for stretched_time_step in range(time_steps_in_stretched):
+            stretch_time_fraction = stretched_time_step / time_steps_in_stretched
+
+            original_time_step = round(stretch_time_fraction * time_steps_in_original)
+
+            original_time_step = min(original_time_step, time_steps_in_original - 1)
+
+            stretched_pianoroll[stretched_time_step, :] = self.array[original_time_step, :]
+
+        self.array = stretched_pianoroll
+
+    def get_copy(self):
+        """
+        Returns copy of this pianoroll instance.
+        """
+        return Pianoroll(np_array=self.array.copy())
+
+    def __getitem__(self, val):
+        """
+        val: A slice denoting what timesteps of the pianoroll to keep.
+
+        A new pianoroll instance is returned with the requested slice.
+
+        Example: p[10:20] returns a new pianoroll instance with the key state sets between 10 inclusive and 20 exclusive.
+        """
+        if isinstance(val, slice):
+            return Pianoroll(self.array[val])
