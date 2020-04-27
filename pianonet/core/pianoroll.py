@@ -91,34 +91,44 @@ class Pianoroll:
         stretch_fraction < 1.0 shortens (speeds up) the pianoroll
         stretch_fraction > 1.0 lengthens (slows down) the pianoroll
 
-        This method modifies self.array in place.
+        This method modifies self.array in place. This method works as well as possible when stretch_fraction >= 0.5 as
+        measured by similarity in the overlapping area of played notes. It could be improved for stretch_fraction < 0.5
+        by taking the weighted most common state of the skipped notes, which could be > 2.0 in this case.
         """
 
-        time_steps_in_original = self.array.shape[0]
-        num_keys_in_original = self.array.shape[1]
+        time_steps_in_original_array = self.array.shape[0]
+        time_steps_in_stretched_array = round(time_steps_in_original_array * stretch_fraction)
 
-        time_steps_in_stretched = round(time_steps_in_original * stretch_fraction)
-
-        if time_steps_in_stretched == 0:
+        if time_steps_in_stretched_array == 0:
             raise Exception("Cannot have zero timesteps in stretched pianoroll.")
 
-        stretched_pianoroll = np.zeros((time_steps_in_stretched, num_keys_in_original)).astype('bool')
+        stretch_time_fractions_array = np.arange(0.0, 1.0, (1.0 / time_steps_in_stretched_array))
 
-        for stretched_time_step in range(time_steps_in_stretched):
-            stretch_time_fraction = stretched_time_step / time_steps_in_stretched
+        original_array_indices = np.round(stretch_time_fractions_array * time_steps_in_original_array).astype('int')
 
-            original_time_step = round(stretch_time_fraction * time_steps_in_original)
+        original_array_indices = np.clip(original_array_indices, a_min=None, a_max=(time_steps_in_original_array - 1))
 
-            original_time_step = min(original_time_step, time_steps_in_original - 1)
+        self.array = self.array[original_array_indices, :]
 
-            stretched_pianoroll[stretched_time_step, :] = self.array[original_time_step, :]
+    def add_zero_padding(self, left_padding_timesteps=0, right_padding_timesteps=0):
+        """
+        left_padding_timesteps: How many empty time steps to add to the left side of the pianoroll array
+        right_padding_timesteps: How many empty time steps to add to the right side of the pianoroll array
+        """
 
-        self.array = stretched_pianoroll
+        total_timesteps = left_padding_timesteps + right_padding_timesteps + self.array.shape[0]
+
+        padded_array = np.zeros((total_timesteps, self.array.shape[1])).astype('bool')
+
+        padded_array[left_padding_timesteps:self.array.shape[0] + left_padding_timesteps, :] = self.array
+
+        self.array = padded_array
 
     def get_copy(self):
         """
         Returns copy of this pianoroll instance.
         """
+
         return Pianoroll(np_array=self.array.copy())
 
     def __getitem__(self, val):
@@ -129,5 +139,6 @@ class Pianoroll:
 
         Example: p[10:20] returns a new pianoroll instance with the key state sets between 10 inclusive and 20 exclusive.
         """
+
         if isinstance(val, slice):
             return Pianoroll(self.array[val])
