@@ -4,7 +4,7 @@ from pypianoroll import Track, Multitrack
 from pianonet.core.midi_tools import play_midi_from_file
 
 
-class Pianoroll:
+class Pianoroll(object):
     """
     An wrapped array representing piano key states in time. The first axis represents the time step, each of which has
     an associated key state of 128 keys. This implementation represents keys as binary on or off states at each time
