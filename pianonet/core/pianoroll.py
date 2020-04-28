@@ -129,7 +129,7 @@ class Pianoroll(object):
         Returns copy of this pianoroll instance.
         """
 
-        return Pianoroll(np_array=self.array.copy())
+        return Pianoroll(self.array.copy())
 
     def __getitem__(self, val):
         """
