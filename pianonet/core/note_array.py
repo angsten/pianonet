@@ -40,14 +40,14 @@ class NoteArray(object):
 
         pianoroll = pianoroll.get_copy()
 
-        self.time_steps = pianoroll.shape[0]
+        self.min_key_index = min_key_index
+        self.num_keys = num_keys
+        self.resolution = resolution
 
         if self.resolution != 1.0:
             pianoroll.stretch(stretch_fraction=resolution)
 
-        self.min_key_index = min_key_index
-        self.num_keys = num_keys
-        self.resolution = resolution
+        self.time_steps = pianoroll.array.shape[0]
 
         cropped_pianoroll = pianoroll.array[:, min_key_index:(min_key_index + num_keys)]
 
@@ -61,11 +61,14 @@ class NoteArray(object):
 
         cropped_unflattened_pianoroll_array = np.reshape(self.array, (self.time_steps, self.num_keys))
 
-        unflattened_pianoroll_array = np.zeros(self.time_steps, 128)
+        unflattened_pianoroll_array = np.zeros((self.time_steps, 128)).astype('bool')
 
         unflattened_pianoroll_array[:,
         self.min_key_index:self.min_key_index + self.num_keys] = cropped_unflattened_pianoroll_array
 
         pianoroll_low_resolution = Pianoroll(unflattened_pianoroll_array)
 
-        return pianoroll_low_resolution.stretch(stretch_fraction=(1.0 / self.resolution))
+        if self.resolution == 1.0:
+            return pianoroll_low_resolution
+        else:
+            return pianoroll_low_resolution.get_stretched(stretch_fraction=(1.0 / self.resolution))
