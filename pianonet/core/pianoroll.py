@@ -110,6 +110,19 @@ class Pianoroll(object):
 
         self.array = self.array[original_array_indices, :]
 
+    def get_stretched(self, stretch_fraction):
+        """
+        stretch_fraction: float >= 0.0 indicating how much to stretch the pianoroll
+
+        Same as stretch method, but returns a copy of the result.
+        """
+
+        new_pianoroll = self.get_copy()
+
+        new_pianoroll.stretch(stretch_fraction=stretch_fraction)
+
+        return new_pianoroll
+
     def add_zero_padding(self, left_padding_timesteps=0, right_padding_timesteps=0):
         """
         left_padding_timesteps: How many empty time steps to add to the left side of the pianoroll array
