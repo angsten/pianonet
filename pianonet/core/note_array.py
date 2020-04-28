@@ -20,7 +20,8 @@ class NoteArray(object):
     def __init__(self, pianoroll=None, flat_array=None, min_key_index=0, num_keys=128, resolution=1.0):
         """
         pianoroll: Instance of Pianoroll class used to populate the notearray's array
-        flat_array: Optionally can initialize from a 1D array of note states.
+        flat_array: Optionally can initialize from a 1D array of note states. **This 1D array is assumed to already
+                    be cropped and downsampled at the specified parameters given to this constructor**
         min_key_index: array index of the lowest piano key to not crop
         num_keys: number of piano keys in pianoroll to keep. min_key_index + num_keys - 1 gives the index of the highest
                   included key.
@@ -28,30 +29,37 @@ class NoteArray(object):
                     resolution=0.5 means every other note is sampled. Must be 1.0 if a flat_array is given
         """
 
-        if (pianoroll != None) and (flat_array != None):
+        if (pianoroll != None) and isinstance(flat_array, np.ndarray):
             raise Exception("Cannot use both a pianoroll and flat_array initializer. Choose one.")
 
-        if flat_array != None:
-            if (flat_array.shape[0] % num_keys) != 0:
-                raise Exception("flat_array contains a timestep with a partial key state. This is not allowed.")
+        if (min_key_index + num_keys) > 128:
+            raise Exception(
+                "(min_key_index + num_keys) = " + str(min_key_index + num_keys) + ", which is greater than 128")
 
-            num_time_steps = (flat_array.shape[0] // num_keys)
-            pianoroll = Pianoroll(flat_array.reshape((num_time_steps, num_keys)))
-
-        pianoroll = pianoroll.get_copy()
+        if resolution > 1.0:
+            raise Exception("Provided resolution of " + str(resolution) + " is greater than 1.0.")
 
         self.min_key_index = min_key_index
         self.num_keys = num_keys
         self.resolution = resolution
 
-        if self.resolution != 1.0:
-            pianoroll.stretch(stretch_fraction=resolution)
+        if isinstance(flat_array, np.ndarray):
+            if (flat_array.shape[0] % num_keys) != 0:
+                raise Exception("flat_array contains a timestep with a partial key state. This is not allowed.")
 
-        self.time_steps = pianoroll.array.shape[0]
+            self.time_steps = (flat_array.shape[0] // num_keys)
+            self.array = flat_array.copy()
+        else:
+            pianoroll = pianoroll.get_copy()
 
-        cropped_pianoroll = pianoroll.array[:, min_key_index:(min_key_index + num_keys)]
+            if self.resolution != 1.0:
+                pianoroll.stretch(stretch_fraction=resolution)
 
-        self.array = cropped_pianoroll.flatten()
+            self.time_steps = pianoroll.array.shape[0]
+
+            cropped_pianoroll = pianoroll.array[:, min_key_index:(min_key_index + num_keys)]
+
+            self.array = cropped_pianoroll.flatten()
 
     def get_pianoroll(self):
         """
