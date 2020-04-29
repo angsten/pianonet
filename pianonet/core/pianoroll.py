@@ -96,6 +96,9 @@ class Pianoroll(object):
         by taking the weighted most common state of the skipped notes, which could be > 2.0 in this case.
         """
 
+        if stretch_fraction == 1.0:
+            return
+
         time_steps_in_original_array = self.array.shape[0]
         time_steps_in_stretched_array = round(time_steps_in_original_array * stretch_fraction)
 
