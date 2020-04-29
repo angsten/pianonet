@@ -1,4 +1,5 @@
 import tempfile
+import os
 
 import pygame
 
@@ -44,3 +45,29 @@ def play_midi_from_file(midi_file_path='', multitrack=None, vol=1.0):
             pygame.mixer.music.fadeout(1000)
             pygame.mixer.music.stop()
             raise SystemExit
+
+
+def is_midi_file(file_name):
+    """
+    Returns true if file_name string looks like a midi file.
+    """
+
+    return file_name.lower().find(".mid") != -1
+
+
+def get_midi_file_paths_list(directory_path):
+    """
+    directory_path: Path to directory containing midi files
+
+    Only one level in the file tree is considered. A list of absolute paths to the midi files is returned.
+    """
+
+    if not os.path.isdir(directory_path):
+        raise Exception(str(directory_path) + " is not a directory.")
+
+    midi_file_names_in_directory = [file_name for file_name in os.listdir(directory_path) if is_midi_file(file_name)]
+
+    midi_file_paths_list = [os.path.abspath(os.path.join(directory_path, file_name)) for file_name in
+                            midi_file_names_in_directory]
+
+    return midi_file_paths_list
