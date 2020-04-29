@@ -1,7 +1,7 @@
 from pianonet.core.note_array import NoteArray
 
 
-class NoteArrayGenerator(object):
+class NoteArrayCreator(object):
     """
     Class for generating NoteArray class instances using fixed cropping and downsampling parameters. This
     is convenient when you have a session that is constantly using the same cropping and downsampling parameters.
