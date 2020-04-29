@@ -3,7 +3,7 @@ import tempfile
 import pygame
 
 
-def play_midi_from_file(midi_file_path='', multitrack=None, vol=0.5):
+def play_midi_from_file(midi_file_path='', multitrack=None, vol=1.0):
     """
     midi_file_path: path to midi file on disc
     multitrack: pypianoroll style multitrack instance that can be written to file
