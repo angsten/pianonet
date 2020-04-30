@@ -1,5 +1,3 @@
-import random
-
 import numpy as np
 
 from pianonet.core.midi_tools import get_midi_file_paths_list
@@ -39,7 +37,7 @@ class MasterNoteArrayCreator(object):
         """
         Creates the master note array using the following steps:
 
-        1. Get list of midi files, randomly shuffle them.
+        1. Get list of midi files in directory
         2. For each midi file in this list:
             a. Load file as Pianoroll instance pianoroll
             b. Generate num_augmentations_per_midi_file NoteArrays using the following steps:
@@ -52,8 +50,6 @@ class MasterNoteArrayCreator(object):
 
         midi_file_paths_list = get_midi_file_paths_list(self.path_to_directory_of_midi_files)
 
-        random.shuffle(midi_file_paths_list)
-
         [print(m) for m in midi_file_paths_list]
 
         note_arrays_list = []
@@ -64,14 +60,29 @@ class MasterNoteArrayCreator(object):
 
             pianoroll = Pianoroll(midi_file_path)
 
-            pianoroll = pianoroll[0:100] #####remove!!
+            pianoroll = pianoroll[0:100]  #####remove!!
+
+            stretch_step_size = (self.stretch_range[1] - self.stretch_range[0]) / self.num_augmentations_per_midi_file
+            random_noise_magnitude = 0.5 * stretch_step_size
+
+            stretch_fractions = np.linspace(start=self.stretch_range[0] + random_noise_magnitude,
+                                            stop=self.stretch_range[1] - random_noise_magnitude,
+                                            num=self.num_augmentations_per_midi_file,
+                                            endpoint=True
+                                            )
+
+            random_noise_array = random_noise_magnitude * (
+                        np.random.random_sample(self.num_augmentations_per_midi_file) - 0.5)
+            stretch_fractions = (stretch_fractions + random_noise_array)
+
+            print("Stretch_fractions array:", str(stretch_fractions))
 
             for i in range(self.num_augmentations_per_midi_file):
-                print("i = " + str(i))
+                # print("i = " + str(i))
 
-                stretch_fraction = random.uniform(self.stretch_range[0], self.stretch_range[1])
+                stretch_fraction = stretch_fractions[i]
 
-                print("Stretch_fraction is " + str(stretch_fraction))
+                # print("Stretch_fraction is " + str(stretch_fraction))
                 stretched_pianoroll = pianoroll.get_stretched(stretch_fraction=stretch_fraction)
 
                 stretched_pianoroll.add_zero_padding(left_padding_timesteps=self.left_padding_timesteps)
@@ -79,8 +90,6 @@ class MasterNoteArrayCreator(object):
                 note_array = self.note_array_creator.get_instance(pianoroll=stretched_pianoroll)
 
                 note_arrays_list.append(note_array)
-
-        print("***" + str(len(note_arrays_list)))
 
         total_note_array_size = np.sum([note_array.get_length() for note_array in note_arrays_list])
 
