@@ -80,3 +80,11 @@ class NoteArray(object):
             return pianoroll_low_resolution
         else:
             return pianoroll_low_resolution.get_stretched(stretch_fraction=(1.0 / self.resolution))
+
+    def get_length(self):
+        """
+        Returns as an integer the length of the stored 1D array
+        """
+
+        return self.array.shape[0]
+
