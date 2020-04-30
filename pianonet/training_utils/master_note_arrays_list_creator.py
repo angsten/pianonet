@@ -6,7 +6,7 @@ from pianonet.core.pianoroll import Pianoroll
 from pianonet.core.misc_tools import get_noisily_spaced_floats
 
 
-class MasterNoteArrayCreator(object):
+class MasterNoteArraysListCreator(object):
     """
     This class will iterate through a folder containing midi files and concatenate their data into a single very large
     NoteArray instance, called the 'master note array', that can be used for efficiently training on. Padding is added
@@ -38,7 +38,7 @@ class MasterNoteArrayCreator(object):
         self.start_padding_timesteps = start_padding_timesteps
         self.end_padding_timesteps = end_padding_timesteps
 
-    def get_instance(self):
+    def get_note_arrays_list(self):
         """
         Creates the master note array using the following steps:
 
@@ -65,7 +65,7 @@ class MasterNoteArrayCreator(object):
 
             pianoroll = Pianoroll(midi_file_path)
 
-            pianoroll = pianoroll[0:400]  #####remove!!
+            pianoroll = pianoroll[0:100]  #####remove!!
 
             stretch_fractions = get_noisily_spaced_floats(start=self.stretch_range[0],
                                                           end=self.stretch_range[1],
@@ -74,11 +74,8 @@ class MasterNoteArrayCreator(object):
             print("Stretch_fractions array:", str(stretch_fractions))
 
             for i in range(self.num_augmentations_per_midi_file):
-                # print("i = " + str(i))
-
                 stretch_fraction = stretch_fractions[i]
 
-                # print("Stretch_fraction is " + str(stretch_fraction))
                 stretched_pianoroll = pianoroll.get_stretched(stretch_fraction=stretch_fraction)
 
                 stretched_pianoroll.add_zero_padding(left_padding_timesteps=self.start_padding_timesteps,
@@ -88,14 +85,4 @@ class MasterNoteArrayCreator(object):
 
                 note_arrays_list.append(note_array)
 
-        total_note_array_size = np.sum([note_array.get_length() for note_array in note_arrays_list])
-
-        master_note_array_values = np.zeros((total_note_array_size,)).astype('bool')
-
-        concat_index = 0
-        for note_array in note_arrays_list:
-            master_note_array_values[concat_index:concat_index + note_array.get_length()] = note_array.array
-
-            concat_index += note_array.get_length()
-
-        return self.note_array_creator.get_instance(flat_array=master_note_array_values)
+        return note_arrays_list
