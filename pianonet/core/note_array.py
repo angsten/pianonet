@@ -81,10 +81,16 @@ class NoteArray(object):
         else:
             return pianoroll_low_resolution.get_stretched(stretch_fraction=(1.0 / self.resolution))
 
-    def get_length(self):
+    def get_length_in_notes(self):
         """
         Returns as an integer the length of the stored 1D array
         """
 
         return self.array.shape[0]
 
+    def get_length_in_timesteps(self):
+        """
+        Returns as an integer the length of the note array in timesteps
+        """
+
+        return (self.get_length_in_notes()//self.num_keys)
