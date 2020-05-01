@@ -10,46 +10,54 @@ class NoteSampleGenerator(object):
         self.note_arrays_list = note_arrays_list
         self.sample_length_in_timesteps = sample_length_in_timesteps
         self.batch_size = batch_size
+        self.random_seed = random_seed
 
         self.num_note_arrays = len(self.note_arrays_list)
 
-        self.note_array_valid_sample_lengths_in_timesteps = np.array(
-            [(note_array.get_length_in_timesteps() - self.sample_length_in_timesteps) for note_array in
-             self.note_arrays_list])
+        valid_sample_points_table = np.zeros((100, 2), dtype='int')
 
-        self.total_valid_sample_timesteps = np.sum(self.note_array_valid_sample_lengths_in_timesteps)
-
-        self.cumulative_timestep_lengths_array = np.cumsum(self.note_array_valid_sample_lengths_in_timesteps)
-
-        np.random.seed(self.random_seed)
-        self.random_indices_list = np.random.choice(a=self.total_valid_sample_timesteps,
-                                                    size=self.total_valid_sample_timesteps,
-                                                    replace=False)
-
-        self.valid_note_array_timesteps_lookup_table = np.zeros((self.total_valid_sample_timesteps, 2),
-                                                                dtype='uint16_t')
+        valid_sample_points_list = []
 
         last_timestep_index = 0
         for note_array_index in range(self.num_note_arrays):
-            valid_timesteps_count = self.note_array_valid_sample_lengths_in_timesteps[i]
+            note_array = self.note_arrays_list[note_array_index]
 
-            self.valid_note_array_timesteps_lookup_table[
-            last_timestep_index:last_timestep_index + valid_timesteps_count, 0] = note_array_index
+            print("Note array length: " + str(note_array.get_length_in_timesteps()))
 
-            self.valid_note_array_timesteps_lookup_table[
-            last_timestep_index:last_timestep_index + valid_timesteps_count, 1] = np.arange(valid_timesteps_count)
+            valid_sample_timesteps = np.arange(
+                start=0,
+                stop=note_array.get_length_in_timesteps(),   ####if not modded correctly, could result in too large of index!
+                step=self.sample_length_in_timesteps,
+                dtype='int',
+            )
 
-            last_timestep_index += valid_timesteps_count
+            for sample_timestep in valid_sample_timesteps:
+                valid_sample_points_list.append((note_array_index, sample_timestep))
 
-        print(self.valid_note_array_timesteps_lookup_table)
 
+        print(valid_sample_points_list)
 
-    # def __iter__(self):
-    #     # sample an index, say ind = 5000
-    #     #
-    #     # need to find which note array this corresponds to - find first point when larger than cumsum value
-    #     #
-    #     # np.random.seed(0)
-    #
-    #     while (True):
-    #         yield None
+        # np.random.seed(self.random_seed)
+
+        # NOW SHUFFLE IT!!!!!!!!!!!!!!!!!!!!!!!!
+
+    def __iter__(self):
+        # sample an index, say ind = 5000
+        #
+        # need to find which note array this corresponds to - find first point when larger than cumsum value
+        #
+
+        counter = 0
+        while (True):
+
+            inputs = []
+            targets = []
+
+            for i in range(self.batch_size):
+
+                yield np.array(inputs, targets)
+
+                counter += 1
+
+    def save(self):
+        pass
