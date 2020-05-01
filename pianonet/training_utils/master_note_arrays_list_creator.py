@@ -22,6 +22,7 @@ class MasterNoteArraysListCreator(object):
                  stretch_range=None,
                  start_padding_timesteps=0,
                  end_padding_timesteps=0,
+                 pad_timesteps_to_be_multiple_of=None,
                  ):
         """
         path_to_directory_of_midi_files: String path to directory of midi files one level deep in file tree
@@ -37,6 +38,8 @@ class MasterNoteArraysListCreator(object):
         self.stretch_range = stretch_range if (stretch_range != None) else [1.0, 1.0]
         self.start_padding_timesteps = start_padding_timesteps
         self.end_padding_timesteps = end_padding_timesteps
+
+        self.pad_timesteps_to_be_multiple_of = pad_timesteps_to_be_multiple_of
 
     def get_note_arrays_list(self):
         """
@@ -65,7 +68,7 @@ class MasterNoteArraysListCreator(object):
 
             pianoroll = Pianoroll(midi_file_path)
 
-            pianoroll = pianoroll[0:100]  #####remove!!
+            pianoroll = pianoroll[0:50]  #####remove!!
 
             stretch_fractions = get_noisily_spaced_floats(start=self.stretch_range[0],
                                                           end=self.stretch_range[1],
@@ -81,6 +84,15 @@ class MasterNoteArraysListCreator(object):
                 stretched_pianoroll.add_zero_padding(left_padding_timesteps=self.start_padding_timesteps,
                                                      right_padding_timesteps=self.end_padding_timesteps)
 
+                if self.pad_timesteps_to_be_multiple_of != None:
+                    print("length before: " + str(stretched_pianoroll.get_num_timesteps()))
+                    print(str(stretched_pianoroll.get_num_timesteps() % self.pad_timesteps_to_be_multiple_of))
+                    stretched_pianoroll.add_zero_padding(
+                        right_padding_timesteps=(
+                                self.pad_timesteps_to_be_multiple_of - (
+                                    stretched_pianoroll.get_num_timesteps() % self.pad_timesteps_to_be_multiple_of)))
+
+                    print("Length after: " + str(stretched_pianoroll.get_num_timesteps()))
                 note_array = self.note_array_creator.get_instance(pianoroll=stretched_pianoroll)
 
                 note_arrays_list.append(note_array)
