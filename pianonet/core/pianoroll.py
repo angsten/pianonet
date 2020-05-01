@@ -140,6 +140,13 @@ class Pianoroll(object):
 
         self.array = padded_array
 
+    def get_num_timesteps(self):
+        """
+        Returns how many timesteps are in the pianoroll as an integer.
+        """
+
+        return self.array.shape[0]
+
     def get_copy(self):
         """
         Returns copy of this pianoroll instance.
