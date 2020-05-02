@@ -12,6 +12,15 @@ class NoteSampleGenerator(object):
                  num_predicted_notes_in_sample,
                  batch_size,
                  random_seed=0):
+        """
+
+        master_note_array: MasterNoteArray instance containing the array of notes that will be used in training
+        num_notes_in_model_input: The size of the expected input for the 1D Conv Net
+        num_predicted_notes_in_sample: How many predictions will be generated per sample (the model's 'headway' for
+                                       sliding forward)
+        batch_size: How many pairs of input and target arrays to return per generator call
+        random_seed: Integer for controlling randomization of the sample indices
+        """
 
         self.master_note_array = master_note_array
         self.num_notes_in_model_input = num_notes_in_model_input
@@ -25,13 +34,10 @@ class NoteSampleGenerator(object):
                                              stop=self.total_notes,
                                              step=self.num_predicted_notes_in_sample)
 
-        print("Prediction start indices: ", str(prediction_start_indices))
-
         np.random.seed(self.random_seed)
-
-        self.randomized_prediction_start_indices = prediction_start_indices
-
         # NOW SHUFFLE IT!!!!!!!!!!!!!!!!!!!!!!!!
+        self.randomized_prediction_start_indices = prediction_start_indices ##Add np.random.choice later
+
 
     def get_input_sample_index_range(self, prediction_start_index):
         """
@@ -53,6 +59,9 @@ class NoteSampleGenerator(object):
         return (start_index, end_index)
 
     def get_batch_generator(self):
+        """
+        Generate a batch of samples.
+        """
 
         def batch_generator():
             start_indices_index = 0
