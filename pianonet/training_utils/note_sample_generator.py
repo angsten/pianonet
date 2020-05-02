@@ -52,13 +52,10 @@ class NoteSampleGenerator(object):
 
         return (start_index, end_index)
 
-    # def __iter__(self):
-    #     return iter(self.batch_generator())
-
     def get_batch_generator(self):
 
         def batch_generator():
-            counter = 0
+            start_indices_index = 0
 
             while (True):
 
@@ -66,49 +63,31 @@ class NoteSampleGenerator(object):
                 targets = []
 
                 for i in range(self.batch_size):
-                    prediction_start_index = self.randomized_prediction_start_indices[counter]
+                    prediction_start_index = self.randomized_prediction_start_indices[start_indices_index]
 
-                    print(prediction_start_index)
+                    print("Prediction start index: ", str(prediction_start_index))
 
-                    input_index_range = self.get_input_sample_index_range(
-                        prediction_start_index=prediction_start_index)
+                    input_index_range = self.get_input_sample_index_range(prediction_start_index=prediction_start_index)
 
                     print("Input index range:" + str(input_index_range))
 
-                    target_index_range = (input_index_range[0] + 1, input_index_range[1] + 1)
+                    input = self.master_note_array.note_array.get_values_in_range(
+                        start_index=input_index_range[0],
+                        end_index=input_index_range[1],
+                        use_zero_padding_for_out_of_bounds=True)
 
-                    bounded_input_index_range = (max(input_index_range[0], 0),
-                                                 min(input_index_range[1], self.total_notes - 1))
-
-                    bounded_target_index_range = (max(target_index_range[0], 0),
-                                                  min(target_index_range[1], self.total_notes - 1))
-
-                    input = self.master_note_array.note_array.array[
-                            bounded_input_index_range[0]:bounded_input_index_range[1]]
-                    target = self.master_note_array.note_array.array[
-                             bounded_target_index_range[0]:bounded_target_index_range[1]]
-
-                    if input_index_range[0] < 0:
-                        pad_count = abs(input_index_range[0])
-                        input = np.pad(array=input, pad_width=(pad_count, 0), mode='constant').astype('bool')
-                    elif input_index_range[1] >= self.total_notes:
-                        pad_count = input_index_range[1] - (self.total_notes - 1)
-                        input = np.pad(array=input, pad_width=(0, pad_count), mode='constant').astype('bool')
-
-                    if target_index_range[0] < 0:
-                        pad_count = abs(target_index_range[0])
-                        target = np.pad(array=target, pad_width=(pad_count, 0), mode='constant').astype('bool')
-                    elif target_index_range[1] >= self.total_notes:
-                        pad_count = target_index_range[1] - (self.total_notes - 1)
-                        target = np.pad(array=target, pad_width=(0, pad_count), mode='constant').astype('bool')
+                    target = self.master_note_array.note_array.get_values_in_range(
+                        start_index=input_index_range[0] + 1,
+                        end_index=input_index_range[1] + 1,
+                        use_zero_padding_for_out_of_bounds=True)
 
                     inputs.append(input)
                     targets.append(target)
 
-                    counter += 1
+                    start_indices_index += 1
 
-                    if counter >= len(self.randomized_prediction_start_indices):
-                        counter = 0
+                    if start_indices_index >= len(self.randomized_prediction_start_indices):
+                        start_indices_index = 0
 
                 yield (np.array(inputs), np.array(targets))
 
