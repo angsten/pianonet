@@ -140,6 +140,25 @@ class Pianoroll(object):
 
         self.array = padded_array
 
+    def trim_silence_off_ends(self):
+        """
+        Crop start and end of self.array where there are only zero values.
+        """
+
+        note_counts_at_each_timestep_array = np.sum(self.array, axis=1)
+
+        non_zero_indices = np.argwhere(note_counts_at_each_timestep_array)
+
+        first_non_zero_index = non_zero_indices[0][0]
+        last_non_zero_index = non_zero_indices[-1][0]
+
+        if last_non_zero_index <= first_non_zero_index:
+            raise Exception("The entire pianoroll is silence. Trimming silence would result in an empty array.")
+
+        self.array = self.array[first_non_zero_index:last_non_zero_index+1]
+
+
+
     def get_num_timesteps(self):
         """
         Returns how many timesteps are in the pianoroll as an integer.

@@ -6,7 +6,7 @@ from pianonet.core.pianoroll import Pianoroll
 from pianonet.core.misc_tools import get_noisily_spaced_floats
 
 
-class MasterNoteArraysListCreator(object):
+class MasterNoteArrayCreator(object):
     """
     This class will iterate through a folder containing midi files and concatenate their data into a single very large
     NoteArray instance, called the 'master note array', that can be used for efficiently training on. Padding is added
@@ -22,7 +22,6 @@ class MasterNoteArraysListCreator(object):
                  stretch_range=None,
                  start_padding_timesteps=0,
                  end_padding_timesteps=0,
-                 pad_timesteps_to_be_multiple_of=None,
                  ):
         """
         path_to_directory_of_midi_files: String path to directory of midi files one level deep in file tree
@@ -38,8 +37,6 @@ class MasterNoteArraysListCreator(object):
         self.stretch_range = stretch_range if (stretch_range != None) else [1.0, 1.0]
         self.start_padding_timesteps = start_padding_timesteps
         self.end_padding_timesteps = end_padding_timesteps
-
-        self.pad_timesteps_to_be_multiple_of = pad_timesteps_to_be_multiple_of
 
     def get_note_arrays_list(self):
         """
