@@ -93,4 +93,33 @@ class NoteArray(object):
         Returns as an integer the length of the note array in timesteps
         """
 
-        return (self.get_length_in_notes()//self.num_keys)
+        return (self.get_length_in_notes() // self.num_keys)
+
+    def get_values_in_range(self, start_index, end_index, use_zero_padding_for_out_of_bounds=False):
+        """
+        start_index: Start index of desired note array values
+        end_index: End index (non-inclusive) of desired note array values
+        use_zero_padding_for_out_of_bounds: If true, zeros are returned for those indices in the range that are
+                                            out of bounds.
+        """
+        pad_count_at_start = 0
+        pad_count_at_end = 0
+
+        bounded_start_index = max(start_index, 0)
+        bounded_end_index = min(end_index, self.get_length_in_notes())
+
+        values = self.array[bounded_start_index:bounded_end_index]
+
+
+        if start_index < 0:
+            pad_count_at_start = abs(start_index)
+
+        if end_index > self.get_length_in_notes():
+            pad_count_at_end = end_index - self.get_length_in_notes()
+
+        if (pad_count_at_start + pad_count_at_end) > 0:
+            values = np.pad(array=values,
+                            pad_width=(pad_count_at_start, pad_count_at_end),
+                            mode='constant').astype('bool')
+
+        return values
