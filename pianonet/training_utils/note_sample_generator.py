@@ -27,7 +27,7 @@ class NoteSampleGenerator(object):
 
         self.prediction_start_indices_index = 0
 
-        self.total_notes = self.master_note_array.note_array.get_length_in_notes()
+        self.total_notes = self.master_note_array.get_length_in_notes()
 
         # Each sample will be generated relative to these indices, which track where the series of predicted notes begin
         prediction_start_indices = np.arange(start=0,
@@ -95,12 +95,12 @@ class NoteSampleGenerator(object):
             print("Prediction start index: ", str(prediction_start_index),
                   "Input index range:" + str(input_index_range))
 
-            input = self.master_note_array.note_array.get_values_in_range(
+            input = self.master_note_array.get_values_in_range(
                 start_index=input_index_range[0],
                 end_index=input_index_range[1],
                 use_zero_padding_for_out_of_bounds=True)
 
-            target = self.master_note_array.note_array.get_values_in_range(
+            target = self.master_note_array.get_values_in_range(
                 start_index=input_index_range[0] + 1,
                 end_index=input_index_range[1] + 1,
                 use_zero_padding_for_out_of_bounds=True)

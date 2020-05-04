@@ -2,15 +2,18 @@ import numpy as np
 
 from pianonet.core.midi_tools import get_midi_file_paths_list
 from pianonet.core.misc_tools import get_noisily_spaced_floats
+from pianonet.core.note_array import NoteArray
 from pianonet.core.pianoroll import Pianoroll
 
 
-class MasterNoteArray(object):
+class MasterNoteArray(NoteArray):
     """
-    A collection of NoteArrays concatenated into one note array with metadata tracked, such as which midis were used
-    and what stretch range. Instances are created by iterating through a folder containing midi files and concatenating
-    their data into a single very large NoteArray instance, called master_note_array. Padding is added to the beginning
-    of each midi file's pianoroll before concatenating to ensure the model is not predicting the next song from
+    A Notearray instance generated from a collection of NoteArrays concatenated into one note array with metadata
+    tracked, such as which midis were used and what stretch range.
+
+    Instances are created by iterating through a folder containing midi files and concatenating their data into a
+    single very large NoteArray instance, called master_note_array. Padding is added to the beginning of each midi
+    file's pianoroll before concatenating to ensure the model is not predicting the next song from
     the previous song's notes, or there is at least enough space for the model to recognize the last song has ended.
     The master note array instance can be used for efficiently training conv1D neural nets on, as having one large note
     array to sample from ensures that longer songs are sampled more than shorter ones, producing a properly calibrated
@@ -19,7 +22,7 @@ class MasterNoteArray(object):
 
     def __init__(self,
                  path_to_directory_of_midi_files,
-                 note_array_creator,
+                 note_array_transformer,
                  num_augmentations_per_midi_file=1,
                  stretch_range=[1.0, 1.0],
                  end_padding_timesteps=0,
@@ -35,7 +38,7 @@ class MasterNoteArray(object):
         """
 
         self.path_to_directory_of_midi_files = path_to_directory_of_midi_files
-        self.note_array_creator = note_array_creator
+        self.note_array_transformer = note_array_transformer
         self.num_augmentations_per_midi_file = num_augmentations_per_midi_file
         self.stretch_range = stretch_range
         self.end_padding_timesteps = end_padding_timesteps
@@ -43,30 +46,30 @@ class MasterNoteArray(object):
 
         self.midi_file_paths_list = get_midi_file_paths_list(self.path_to_directory_of_midi_files)
 
-        self.note_array = self.get_master_note_array()
+        self.array = self.get_concatenated_flat_array()
 
-    def get_master_note_array(self):
+    def get_concatenated_flat_array(self):
         """
-        Using the note arrays list generated in get_note_arrays_list, concatentate together into a single note array.
+        Using the flat arrays list generated in get_flat_arrays_list, concatentate together into a single flat array.
         """
 
-        note_arrays_list = self.get_note_arrays_list()
+        flat_arrays_list = self.get_flat_arrays_list()
 
-        total_note_array_size = np.sum([note_array.get_length_in_notes() for note_array in note_arrays_list])
+        total_array_length = np.sum([flat_array.shape[0] for flat_array in flat_arrays_list])
 
-        master_note_array_values = np.zeros((total_note_array_size,)).astype('bool')
+        master_flat_array = np.zeros((total_array_length,)).astype('bool')
 
         concat_index = 0
-        for note_array in note_arrays_list:
-            master_note_array_values[concat_index:concat_index + note_array.get_length_in_notes()] = note_array.array
+        for flat_array in flat_arrays_list:
+            master_flat_array[concat_index:concat_index + flat_array.shape[0]] = flat_array
 
-            concat_index += note_array.get_length_in_notes()
+            concat_index += flat_array.shape[0]
 
-        return self.note_array_creator.get_instance(flat_array=master_note_array_values)
+        return master_flat_array
 
-    def get_note_arrays_list(self):
+    def get_flat_arrays_list(self):
         """
-        Creates the master note array using the following steps:
+        Create the list of flat arrays from the midi files list using the following steps:
 
         1. For each midi file in the list of midi files to use:
             a. Load file as Pianoroll instance pianoroll
@@ -80,7 +83,7 @@ class MasterNoteArray(object):
            array values.
         """
 
-        note_arrays_list = []
+        flat_arrays_list = []
 
         for midi_file_path in self.midi_file_paths_list:
 
@@ -102,8 +105,8 @@ class MasterNoteArray(object):
 
                 stretched_pianoroll.add_zero_padding(right_padding_timesteps=self.end_padding_timesteps)
 
-                note_array = self.note_array_creator.get_instance(pianoroll=stretched_pianoroll)
+                flat_array = self.note_array_transformer.get_flat_array_from_pianoroll(pianoroll=stretched_pianoroll)
 
-                note_arrays_list.append(note_array)
+                flat_arrays_list.append(flat_array)
 
-        return note_arrays_list
+        return flat_arrays_list
