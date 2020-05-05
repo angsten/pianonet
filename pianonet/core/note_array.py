@@ -77,24 +77,27 @@ class NoteArray(object):
                                             out of bounds.
         """
 
-        pad_count_at_start = 0
-        pad_count_at_end = 0
+        if use_zero_padding_for_out_of_bounds:
+            pad_count_at_start = 0
+            pad_count_at_end = 0
 
-        bounded_start_index = max(start_index, 0)
-        bounded_end_index = min(end_index, self.get_length_in_notes())
+            bounded_start_index = max(start_index, 0)
+            bounded_end_index = min(end_index, self.get_length_in_notes())
 
-        values = self.array[bounded_start_index:bounded_end_index]
+            values = self.array[bounded_start_index:bounded_end_index]
 
-        if start_index < 0:
-            pad_count_at_start = abs(start_index)
+            if start_index < 0:
+                pad_count_at_start = abs(start_index)
 
-        if end_index > self.get_length_in_notes():
-            pad_count_at_end = end_index - self.get_length_in_notes()
+            if end_index > self.get_length_in_notes():
+                pad_count_at_end = end_index - self.get_length_in_notes()
 
-        if (pad_count_at_start + pad_count_at_end) > 0:
-            values = np.pad(array=values,
-                            pad_width=(pad_count_at_start, pad_count_at_end),
-                            mode='constant').astype('bool')
+            if (pad_count_at_start + pad_count_at_end) > 0:
+                values = np.pad(array=values,
+                                pad_width=(pad_count_at_start, pad_count_at_end),
+                                mode='constant').astype('bool')
+        else:
+            values = self.array[start_index:end_index]
 
         return values
 
