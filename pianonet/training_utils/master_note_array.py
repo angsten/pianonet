@@ -8,16 +8,17 @@ from pianonet.core.pianoroll import Pianoroll
 
 class MasterNoteArray(NoteArray):
     """
-    A Notearray instance generated from a collection of NoteArrays concatenated into one note array with metadata
-    tracked, such as which midis were used and what stretch range.
+    A Notearray instance generated from a collection of NoteArrays loaded from a directory of midi files. The data in
+    these files are concatenated into one note array with metadata tracked, such as which midis were used and what
+    stretch range. These instances conveniently provide the training or validation data. MasterNoteArray instances can
+    be saved and later reused to ensure consistent training input.
 
     Instances are created by iterating through a folder containing midi files and concatenating their data into a
-    single very large NoteArray instance, called master_note_array. Padding is added to the beginning of each midi
-    file's pianoroll before concatenating to ensure the model is not predicting the next song from
-    the previous song's notes, or there is at least enough space for the model to recognize the last song has ended.
-    The master note array instance can be used for efficiently training conv1D neural nets on, as having one large note
-    array to sample from ensures that longer songs are sampled more than shorter ones, producing a properly calibrated
-    model.
+    single very large NoteArray instance. Padding is added to the beginning of each midi file's pianoroll before
+    concatenating to ensure the model is not predicting the next song from the previous song's notes, or there is
+    at least enough space for the model to recognize the last song has ended. A master note array instance can be used
+    for efficiently training conv1D neural nets on, as having one large note array to sample from ensures that longer
+    songs are sampled more than shorter ones, producing a properly calibrated model.
     """
 
     def __init__(self,
@@ -30,7 +31,7 @@ class MasterNoteArray(NoteArray):
                  ):
         """
         path_to_directory_of_midi_files: String path to directory of midi files one level deep in file tree
-        note_array_creator: NoteArrayCreator instance specifying how to crop and downsample a pianoroll into a NoteArray
+        note_array_transformer: NoteArrayTransformer instance specifying how to crop and downsample a pianoroll
         num_augmentations_per_midi_file: How many stretched pianorolls to create from each midi fil
         stretch_range: A tupe of two floats in range (0.0, infinity) specifying valid random range for stretch fractions
         end_padding_timesteps: How much padding in timesteps to add to the end of pianorolls before conccatenating
