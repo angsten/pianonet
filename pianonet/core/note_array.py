@@ -4,9 +4,9 @@ import numpy as np
 class NoteArray(object):
     """
     A NoteArray is a 1D stream of piano note states derived from flattening a pianoroll. The notearray is useful
-    for training a 1D convolutional neural net. The parent pianoroll can be set to lower resolution before flattening.
-    Also, most keys in pianorolls are always or nearly always zero, usually the highest and lowest keys. This is why
-    cropping high and low keys of the input pianoroll is supported.
+    for training a 1D convolutional neural net. The given pianoroll can be down-sampled to lower resolution before
+    flattening. Also, most keys in pianorolls are always or nearly always zero, usually the highest and lowest keys.
+    This is why cropping high and low keys of the input pianoroll is supported.
 
     Example array:
 
