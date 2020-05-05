@@ -3,7 +3,18 @@ import numpy as np
 
 class NoteSampleGenerator(object):
     """
-    Class representing a generator of NoteArray input and target segments that can be used for training.
+    Class representing a generator of NoteArray input and target segments that can be used for training a 1D conv net.
+
+    The 'prediction start indices' are the positions in the flat array of note states that give the starts of the series
+    of note states to be predicted in each sample. These start positions are each num_predicted_notes_in_sample distance
+    apart. Each sample is given relative to the prediction start index, as diagrammed in the comment of the
+    get_input_sample_index_range method. A constant random_seed means the same order of randomized prediction start
+    indices will be generated, so the samples will look identical if the master note array is kept constant.
+
+    The sampling method used below guarantees that each note in the master note array will be predicted exactly once
+    in each training epoch, if the epoch runs for get_total_samples_count() iterations. Note: Zero padding is added at
+    the boundaries to ensure all notes are sampled, adding a very small number of additional 0-state input notes
+    at the beginning and 0-state predicted notes at the end.
     """
 
     def __init__(self,
@@ -13,11 +24,11 @@ class NoteSampleGenerator(object):
                  batch_size,
                  random_seed=0):
         """
-        master_note_array: MasterNoteArray instance containing the array of notes that will be used in training
-        num_notes_in_model_input: The size of the expected input for the 1D Conv Net
-        num_predicted_notes_in_sample: Predicted notes per sample (the model's 'headway' for sliding forward)
+        master_note_array: MasterNoteArray instance containing the array of note states that will be used in training
+        num_notes_in_model_input: The size of the expected input for the 1D convnet
+        num_predicted_notes_in_sample: Predicted notes given in each sample (the model's 'headway' for sliding forward)
         batch_size: How many pairs of input and target arrays to return per generator call
-        random_seed: Integer for controlling randomization of the sample indices
+        random_seed: Integer for controlling randomization of the sampled start indices
         """
 
         self.master_note_array = master_note_array
@@ -27,11 +38,9 @@ class NoteSampleGenerator(object):
 
         self.prediction_start_indices_index = 0
 
-        self.total_notes = self.master_note_array.get_length_in_notes()
-
         # Each sample will be generated relative to these indices, which track where the series of predicted notes begin
         prediction_start_indices = np.arange(start=0,
-                                             stop=self.total_notes,
+                                             stop=self.master_note_array.get_length_in_notes(),
                                              step=self.num_predicted_notes_in_sample)
 
         np.random.seed(random_seed)
@@ -40,14 +49,15 @@ class NoteSampleGenerator(object):
 
     def get_total_samples_count(self):
         """
-        Returns total number of unique samples this generator can output before looping back through data.
+        Returns total number of unique samples this generator can output before looping back through the data.
         """
+
         return len(self.randomized_prediction_start_indices)
 
     def get_then_update_prediction_start_index(self):
         """
-        Return the current index in the note array tracking the location of the next series of predictions returned
-        from the master note array. This method also increments the current index to point to the next series.
+        Return the current position tracking the location of the next series of predictions returned from the master
+        note array data. This method then increments the current index to be the next valid start position.
         """
 
         prediction_start_index = self.randomized_prediction_start_indices[self.prediction_start_indices_index]
@@ -80,8 +90,8 @@ class NoteSampleGenerator(object):
 
     def __next__(self):
         """
-        Generate the next batch of samples taken from the master note array data based on where the current prediction
-        index is pointing.
+        Generate the next batch of samples taken from the master note array data based on what the current prediction
+        start index is.
         """
 
         inputs = []
@@ -114,4 +124,5 @@ class NoteSampleGenerator(object):
         """
         Allows this class to serve as an iterable object.
         """
+
         return self
