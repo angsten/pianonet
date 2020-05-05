@@ -1,5 +1,5 @@
 import numpy as np
-
+import pickle
 
 class NoteArray(object):
     """
@@ -15,31 +15,35 @@ class NoteArray(object):
     [0, 0, 0, 1, 0, 0, 0, 0, ... 1, 0, 0, 1, 0, 0, 0, 0, ...]
     """
 
-    def __init__(self, pianoroll=None, flat_array=None, note_array_transformer=None):
+    def __init__(self, pianoroll=None, flat_array=None, file_path=None, note_array_transformer=None):
         """
         pianoroll: Instance of Pianoroll class used to populate the notearray's array
         flat_array: Optionally can initialize from a 1D array of note states. **This 1D array is assumed to already
                     be cropped and downsampled at the specified parameters given to this constructor**
+        file_path: Optionally can initialize from a NoteArray instance that was saved to file.
         note_array_transformer: NoteArrayTransformer instance for converting a pianoroll or flat array into a NoteArray
         """
 
-        self.note_array_transformer = note_array_transformer
-
-        pianoroll_is_defined = (pianoroll != None)
-        flat_array_is_defined = isinstance(flat_array, np.ndarray)
-
-        if pianoroll_is_defined and flat_array_is_defined:
-            raise Exception("Cannot use both a pianoroll and flat_array initializer. Choose one.")
-
-        elif pianoroll_is_defined:
-            self.array = self.note_array_transformer.get_flat_array_from_pianoroll(pianoroll=pianoroll)
-
-        elif flat_array_is_defined:
-            self.note_array_transformer.validate_flat_array(flat_array)
-            self.array = flat_array.copy()
-
+        if file_path != None:
+            self.load(file_path)
         else:
-            raise Exception("Neither a pianoroll nor a flat_array initializer has been provided.")
+            self.note_array_transformer = note_array_transformer
+
+            pianoroll_is_defined = (pianoroll != None)
+            flat_array_is_defined = isinstance(flat_array, np.ndarray)
+
+            if pianoroll_is_defined and flat_array_is_defined:
+                raise Exception("Cannot use both a pianoroll and flat_array initializer. Choose one.")
+
+            elif pianoroll_is_defined:
+                self.array = self.note_array_transformer.get_flat_array_from_pianoroll(pianoroll=pianoroll)
+
+            elif flat_array_is_defined:
+                self.note_array_transformer.validate_flat_array(flat_array)
+                self.array = flat_array.copy()
+
+            else:
+                raise Exception("Neither a pianoroll nor a flat_array initializer has been provided.")
 
     def get_pianoroll(self):
         """
@@ -91,3 +95,28 @@ class NoteArray(object):
                             mode='constant').astype('bool')
 
         return values
+
+    def save(self, file_path):
+        """
+        file_path: Path indicating where on disc to save the NoteArray instance.
+
+        Saves the NoteArray instance to a file.
+        """
+
+        with open(file_path, 'wb') as file:
+            pickle.dump(self, file=file)
+
+    def load(self, file_path):
+        """
+        file_path: Path indicating from where on disc to load the NoteArray instance.
+
+        Loads the NoteArray instance from a file.
+        """
+
+        with open(file_path, 'rb') as file:
+            loaded_instance = pickle.load(file)
+
+            self.__dict__ = loaded_instance.__dict__
+
+
+
