@@ -7,8 +7,8 @@ from pianonet.core.pianoroll import Pianoroll
 class NoteArrayTransformer(object):
     """
     Class for transforming a Pianoroll instance to a NoteArray instance using cropping and down-sampling. Storing
-    the transformation in an object is convenient when you have a session that is constantly using the same cropping
-    and downsampling parameters.
+    the transformation params in an object is convenient when you have a session that is constantly using the same
+    cropping and downsampling parameters, which is why the get_note_array method is included for convenience.
     """
 
     def __init__(self, min_key_index=0, num_keys=128, resolution=1.0):
@@ -89,11 +89,10 @@ class NoteArrayTransformer(object):
         """
         pianoroll: Pianoroll instance to generate NoteArray from
         flat_array: Only if pianoroll is None, the 1D array of bools for populating the NoteArray data
+
         Generates new NoteArray instance from a Pianoroll instance pianoroll or a 1D array of bools, flat_array.
         """
 
         return NoteArray(pianoroll=pianoroll,
                          flat_array=flat_array,
-                         min_key_index=self.min_key_index,
-                         num_keys=self.num_keys,
-                         resolution=self.resolution)
+                         note_array_transformer=self)
