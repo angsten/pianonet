@@ -22,14 +22,16 @@ class MasterNoteArray(NoteArray):
     """
 
     def __init__(self,
-                 path_to_directory_of_midi_files,
-                 note_array_transformer,
+                 file_path=None,
+                 path_to_directory_of_midi_files=None,
+                 note_array_transformer=None,
                  num_augmentations_per_midi_file=1,
                  stretch_range=[1.0, 1.0],
                  end_padding_timesteps=0,
                  timesteps_crop_range=None,
                  ):
         """
+        file_path: Optional, can initialize by loading a previously saved master note array from disc.
         path_to_directory_of_midi_files: String path to directory of midi files one level deep in file tree
         note_array_transformer: NoteArrayTransformer instance specifying how to crop and downsample a pianoroll
         num_augmentations_per_midi_file: How many stretched pianorolls to create from each midi fil
@@ -38,16 +40,19 @@ class MasterNoteArray(NoteArray):
         timesteps_crop_range: Mostly for debugging - chop each pianoroll to be within timesteps_crop_range timesteps
         """
 
-        self.path_to_directory_of_midi_files = path_to_directory_of_midi_files
-        self.note_array_transformer = note_array_transformer
-        self.num_augmentations_per_midi_file = num_augmentations_per_midi_file
-        self.stretch_range = stretch_range
-        self.end_padding_timesteps = end_padding_timesteps
-        self.timesteps_crop_range = timesteps_crop_range
+        if file_path != None:
+            self.load(file_path=file_path)
+        else:
+            self.path_to_directory_of_midi_files = path_to_directory_of_midi_files
+            self.note_array_transformer = note_array_transformer
+            self.num_augmentations_per_midi_file = num_augmentations_per_midi_file
+            self.stretch_range = stretch_range
+            self.end_padding_timesteps = end_padding_timesteps
+            self.timesteps_crop_range = timesteps_crop_range
 
-        self.midi_file_paths_list = get_midi_file_paths_list(self.path_to_directory_of_midi_files)
+            self.midi_file_paths_list = get_midi_file_paths_list(self.path_to_directory_of_midi_files)
 
-        self.array = self.get_concatenated_flat_array()
+            self.array = self.get_concatenated_flat_array()
 
     def get_concatenated_flat_array(self):
         """
