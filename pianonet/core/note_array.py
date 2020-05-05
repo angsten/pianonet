@@ -1,5 +1,7 @@
-import numpy as np
 import pickle
+
+import numpy as np
+
 
 class NoteArray(object):
     """
@@ -25,7 +27,7 @@ class NoteArray(object):
         """
 
         if file_path != None:
-            self.load(file_path)
+            self.load(file_path=file_path)
         else:
             self.note_array_transformer = note_array_transformer
 
@@ -117,6 +119,3 @@ class NoteArray(object):
             loaded_instance = pickle.load(file)
 
             self.__dict__ = loaded_instance.__dict__
-
-
-
