@@ -14,7 +14,7 @@ class MasterNoteArray(NoteArray):
     be saved and later reused to ensure consistent training input.
 
     Instances are created by iterating through a folder containing midi files and concatenating their data into a
-    single very large NoteArray instance. Padding is added to the beginning of each midi file's pianoroll before
+    single very large NoteArray instance. Padding is added to the end of each midi file's pianoroll before
     concatenating to ensure the model is not predicting the next song from the previous song's notes, or there is
     at least enough space for the model to recognize the last song has ended. A master note array instance can be used
     for efficiently training conv1D neural nets on, as having one large note array to sample from ensures that longer
@@ -24,39 +24,46 @@ class MasterNoteArray(NoteArray):
     def __init__(self,
                  file_path=None,
                  path_to_directory_of_midi_files=None,
+                 num_files_to_use=None,
                  note_array_transformer=None,
                  num_augmentations_per_midi_file=1,
                  stretch_range=[1.0, 1.0],
-                 end_padding_timesteps=0,
-                 timesteps_crop_range=None,
+                 end_padding_time_steps=0,
+                 time_steps_crop_range=None,
                  ):
         """
-        file_path: Optional, can initialize by loading a previously saved master note array from disc.
+        file_path: Optional, can initialize by loading a previously saved master note array from disc
         path_to_directory_of_midi_files: String path to directory of midi files one level deep in file tree
-        note_array_transformer: NoteArrayTransformer instance specifying how to crop and downsample a pianoroll
-        num_augmentations_per_midi_file: How many stretched pianorolls to create from each midi fil
-        stretch_range: A tupe of two floats in range (0.0, infinity) specifying valid random range for stretch fractions
-        end_padding_timesteps: How much padding in timesteps to add to the end of pianorolls before conccatenating
-        timesteps_crop_range: Mostly for debugging - chop each pianoroll to be within timesteps_crop_range timesteps
+        num_files_to_use: Integer specifying a limit on how many files to load from directory. If None, all are loaded
+        note_array_transformer: NoteArrayTransformer instance specifying how to crop and down-sample a pianoroll
+        num_augmentations_per_midi_file: How many stretched pianoroll augmentations to create from each midi file
+        stretch_range: A tuple of two floats in range (0.0, infinity) specifying the valid range for stretch fractions
+        end_padding_time_steps: How much padding in time steps to add to the end of pianorolls before conccatenating
+        time_steps_crop_range: Mostly for debugging - chop each pianoroll to be within time_steps_crop_range timesteps
         """
 
         if file_path != None:
             self.load(file_path=file_path)
         else:
+            self.file_path = file_path
             self.path_to_directory_of_midi_files = path_to_directory_of_midi_files
+            self.num_files_to_use = num_files_to_use
             self.note_array_transformer = note_array_transformer
             self.num_augmentations_per_midi_file = num_augmentations_per_midi_file
-            self.stretch_range = stretch_range
-            self.end_padding_timesteps = end_padding_timesteps
-            self.timesteps_crop_range = timesteps_crop_range
+            self.stretch_range = stretch_range if (stretch_range != None) else (1.0, 1.0)
+            self.end_padding_time_steps = end_padding_time_steps
+            self.time_steps_crop_range = time_steps_crop_range
 
             self.midi_file_paths_list = get_midi_file_paths_list(self.path_to_directory_of_midi_files)
+
+            if num_files_to_use != None:
+                self.midi_file_paths_list = self.midi_file_paths_list[0:self.num_files_to_use]
 
             self.array = self.get_concatenated_flat_array()
 
     def get_concatenated_flat_array(self):
         """
-        Using the flat arrays list generated in get_flat_arrays_list, concatentate together into a single flat array.
+        Take the flat arrays list generated in get_flat_arrays_list and concatenate together into a single flat array.
         """
 
         flat_arrays_list = self.get_flat_arrays_list()
@@ -67,7 +74,7 @@ class MasterNoteArray(NoteArray):
 
         concat_index = 0
         for i in range(len(flat_arrays_list)):
-            flat_array = flat_arrays_list.pop(0) # we pop to reduce memory overhead
+            flat_array = flat_arrays_list.pop(0)  # we pop to reduce memory overhead
             master_flat_array[concat_index:concat_index + flat_array.shape[0]] = flat_array
 
             concat_index += flat_array.shape[0]
@@ -81,13 +88,13 @@ class MasterNoteArray(NoteArray):
         1. For each midi file in the list of midi files to use:
             a. Load file as Pianoroll instance pianoroll
             b. Trim silence off of ends of pianoroll
+            c. Crop pianoroll to be within time_steps_crop_range time_steps
             c. Generate num_augmentations_per_midi_file NoteArrays using the following steps:
                 i. Stretch pianoroll by random amount within prescribed range (using noisy even spacing method)
-                ii. Add start and end padding to pianoroll
+                ii. Add end padding to pianoroll
                 iii. Create cropped and down-sampled NoteArray instance from this pianoroll using note_array_creator
-            d. Add NoteArray instances to a list
-        2. Concatenate the full list of NoteArray instances into a single master NoteArray instance by merging their
-           array values.
+            d. Add NoteArray instance's 1D array values of booleans to a list
+        2. Concatenate the full list of 1D arrays into a single master flat array by concatenating their values.
         """
 
         flat_arrays_list = []
@@ -98,8 +105,8 @@ class MasterNoteArray(NoteArray):
 
             pianoroll.trim_silence_off_ends()
 
-            if self.timesteps_crop_range != None:
-                pianoroll = pianoroll[self.timesteps_crop_range[0]:self.timesteps_crop_range[1]]
+            if self.time_steps_crop_range != None:
+                pianoroll = pianoroll[self.time_steps_crop_range[0]:self.time_steps_crop_range[1]]
 
             stretch_fractions = get_noisily_spaced_floats(start=self.stretch_range[0],
                                                           end=self.stretch_range[1],
@@ -110,7 +117,7 @@ class MasterNoteArray(NoteArray):
 
                 stretched_pianoroll = pianoroll.get_stretched(stretch_fraction=stretch_fraction)
 
-                stretched_pianoroll.add_zero_padding(right_padding_timesteps=self.end_padding_timesteps)
+                stretched_pianoroll.add_zero_padding(right_padding_timesteps=self.end_padding_time_steps)
 
                 flat_array = self.note_array_transformer.get_flat_array_from_pianoroll(pianoroll=stretched_pianoroll)
 
