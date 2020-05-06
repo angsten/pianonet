@@ -64,12 +64,14 @@ class NoteArrayTransformer(object):
 
         self.validate_flat_array(flat_array)
 
-        cropped_unflattened_pianoroll_array = flat_array.reshape(flat_array.shape[0] // self.num_keys, self.num_keys)
+        num_timesteps = (flat_array.shape[0] // self.num_keys)
 
-        unflattened_pianoroll_array = np.zeros((flat_array.shape[0] // self.num_keys, 128)).astype('bool')
+        flat_array = flat_array.reshape(num_timesteps, self.num_keys)
+
+        unflattened_pianoroll_array = np.zeros((num_timesteps, 128), dtype='bool')
 
         unflattened_pianoroll_array[:,
-        self.min_key_index:self.min_key_index + self.num_keys] = cropped_unflattened_pianoroll_array
+        self.min_key_index:self.min_key_index + self.num_keys] = flat_array
 
         return Pianoroll(unflattened_pianoroll_array).get_stretched(stretch_fraction=(1.0 / self.resolution))
 

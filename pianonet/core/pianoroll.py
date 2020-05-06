@@ -72,8 +72,6 @@ class Pianoroll(object):
 
         track = Track(pianoroll=self.array, program=0, is_drum=False)
 
-        m = Multitrack(tracks=[track], tempo=120, downbeat=None, beat_resolution=24)
-
         return Multitrack(tracks=[track], tempo=120, downbeat=None, beat_resolution=24)
 
     def play(self):
@@ -134,7 +132,7 @@ class Pianoroll(object):
 
         total_timesteps = left_padding_timesteps + right_padding_timesteps + self.array.shape[0]
 
-        padded_array = np.zeros((total_timesteps, self.array.shape[1])).astype('bool')
+        padded_array = np.zeros((total_timesteps, self.array.shape[1]), dtype='bool')
 
         padded_array[left_padding_timesteps:self.array.shape[0] + left_padding_timesteps, :] = self.array
 

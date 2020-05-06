@@ -63,10 +63,11 @@ class MasterNoteArray(NoteArray):
 
         total_array_length = np.sum([flat_array.shape[0] for flat_array in flat_arrays_list])
 
-        master_flat_array = np.zeros((total_array_length,)).astype('bool')
+        master_flat_array = np.zeros((total_array_length,), dtype='bool')
 
         concat_index = 0
-        for flat_array in flat_arrays_list:
+        for i in range(len(flat_arrays_list)):
+            flat_array = flat_arrays_list.pop(0) # we pop to reduce memory overhead
             master_flat_array[concat_index:concat_index + flat_array.shape[0]] = flat_array
 
             concat_index += flat_array.shape[0]
