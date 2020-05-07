@@ -39,13 +39,12 @@ class NoteSampleGenerator(object):
         self.prediction_start_indices_index = 0
 
         # Each sample will be generated relative to these indices, which track where the series of predicted notes begin
-        prediction_start_indices = np.arange(start=0,
-                                             stop=self.master_note_array.get_length_in_notes(),
-                                             step=self.num_predicted_notes_in_sample)
+        self.randomized_prediction_start_indices = np.arange(start=0,
+                                                             stop=self.master_note_array.get_length_in_notes(),
+                                                             step=self.num_predicted_notes_in_sample)
 
         np.random.seed(random_seed)
-        # NOW SHUFFLE IT!!!!!!!!!!!!!!!!!!!!!!!!
-        self.randomized_prediction_start_indices = prediction_start_indices  ##Add np.random.choice later
+        np.random.shuffle(self.randomized_prediction_start_indices)
 
     def get_total_samples_count(self):
         """
@@ -101,9 +100,6 @@ class NoteSampleGenerator(object):
             prediction_start_index = self.get_then_update_prediction_start_index()
 
             input_index_range = self.get_input_sample_index_range(prediction_start_index=prediction_start_index)
-
-            print("Prediction start index: ", str(prediction_start_index),
-                  "Input index range:" + str(input_index_range))
 
             input = self.master_note_array.get_values_in_range(
                 start_index=input_index_range[0],
