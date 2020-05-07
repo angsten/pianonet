@@ -1,9 +1,10 @@
 {
-  "prefix": "bach_small_1",
+  "file_name_prefix": "bach_small_a",
   "min_key_index": 34,
   "num_keys": 64,
   "resolution": 1.0,
   "end_padding_time_steps": 240,
+  "num_augmentations_per_midi_file": 5,
   "stretch_range": [
     0.85,
     1.2
@@ -11,6 +12,7 @@
   "time_steps_crop_range": [],
   "midi_locator": {
     "path_to_midi_file_directory": "/Users/angsten/PycharmProjects/pianonet/data/midi/bach/",
-    "list_of_midi_file_names": []
-  }
+    "whitelisted_midi_file_names": []
+  },
+  "validation_fraction": 0.25
 }
