@@ -25,7 +25,7 @@ class MasterNoteArray(NoteArray):
                  midi_file_paths_list=None,
                  note_array_transformer=None,
                  num_augmentations_per_midi_file=1,
-                 stretch_range=[1.0, 1.0],
+                 stretch_range=None,
                  end_padding_time_steps=0,
                  time_steps_crop_range=None,
                  ):
