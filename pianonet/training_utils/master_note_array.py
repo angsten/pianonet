@@ -1,6 +1,5 @@
 import numpy as np
 
-from pianonet.core.midi_tools import get_midi_file_paths_list
 from pianonet.core.misc_tools import get_noisily_spaced_floats
 from pianonet.core.note_array import NoteArray
 from pianonet.core.pianoroll import Pianoroll
@@ -23,8 +22,7 @@ class MasterNoteArray(NoteArray):
 
     def __init__(self,
                  file_path=None,
-                 path_to_directory_of_midi_files=None,
-                 num_files_to_use=None,
+                 midi_file_paths_list=None,
                  note_array_transformer=None,
                  num_augmentations_per_midi_file=1,
                  stretch_range=[1.0, 1.0],
@@ -33,8 +31,7 @@ class MasterNoteArray(NoteArray):
                  ):
         """
         file_path: Optional, can initialize by loading a previously saved master note array from disc
-        path_to_directory_of_midi_files: String path to directory of midi files one level deep in file tree
-        num_files_to_use: Integer specifying a limit on how many files to load from directory. If None, all are loaded
+        midi_file_paths_list: List of string paths to midi files to load
         note_array_transformer: NoteArrayTransformer instance specifying how to crop and down-sample a pianoroll
         num_augmentations_per_midi_file: How many stretched pianoroll augmentations to create from each midi file
         stretch_range: A tuple of two floats in range (0.0, infinity) specifying the valid range for stretch fractions
@@ -46,18 +43,12 @@ class MasterNoteArray(NoteArray):
             self.load(file_path=file_path)
         else:
             self.file_path = file_path
-            self.path_to_directory_of_midi_files = path_to_directory_of_midi_files
-            self.num_files_to_use = num_files_to_use
+            self.midi_file_paths_list = midi_file_paths_list
             self.note_array_transformer = note_array_transformer
             self.num_augmentations_per_midi_file = num_augmentations_per_midi_file
             self.stretch_range = stretch_range if (stretch_range != None) else (1.0, 1.0)
             self.end_padding_time_steps = end_padding_time_steps
             self.time_steps_crop_range = time_steps_crop_range
-
-            self.midi_file_paths_list = get_midi_file_paths_list(self.path_to_directory_of_midi_files)
-
-            if num_files_to_use != None:
-                self.midi_file_paths_list = self.midi_file_paths_list[0:self.num_files_to_use]
 
             self.array = self.get_concatenated_flat_array()
 
