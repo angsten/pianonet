@@ -2,16 +2,20 @@
 #
 # Usage: python master_note_array_creation.py /path/to/input/file.json /path/to/output/directory
 #
-# Description: Script for generating a master note array from input midi files or a directory of these files. To specify
+# Description: Script for generating a master note array from input midi files or a directory of midi files. To specify
 #              how to create the master note array instance, use a json file with the required parameters noted below.
-#              The output master note array will be saved to /path/to/output/directory/prefix_name_in_json_idx.mna,
+#
+#              The output master note array will be saved to
+#
+#                   /path/to/output/directory/prefix_name_in_json_{training, validation, full}_idx.mna
+#
 #              where idx is a counter updated to the next unique integer to avoid overwriting.
 ###
 
 import json
 import os
-import sys
 import random
+import sys
 
 from pianonet.core.midi_tools import get_midi_file_paths_list
 from pianonet.core.note_array_transformer import NoteArrayTransformer
@@ -33,7 +37,7 @@ def main():
     with open(input_json_file_path, 'rb') as json_file:
         custom_parameters = json.load(json_file)
 
-    print("\nGenerating master note array using the following parameters:")
+    print("\nGenerating MasterNoteArray using the following parameters:\n")
     for k, v in custom_parameters.items():
         print("\t" + str(k) + ": " + str(v))
 
@@ -44,20 +48,12 @@ def main():
     resolution = custom_parameters['resolution']
 
     end_padding_time_steps = custom_parameters['end_padding_time_steps']
-    stretch_range = custom_parameters['stretch_range']
     num_augmentations_per_midi_file = custom_parameters['num_augmentations_per_midi_file']
+    stretch_range = custom_parameters['stretch_range'] if (custom_parameters['stretch_range'] != []) else None
+    time_steps_crop_range = custom_parameters['time_steps_crop_range'] if (
+            custom_parameters['time_steps_crop_range'] != []) else None
 
-    if custom_parameters['time_steps_crop_range'] != []:
-        time_steps_crop_range = custom_parameters['time_steps_crop_range']
-    else:
-        time_steps_crop_range = None
-
-    if custom_parameters['stretch_range'] != []:
-        stretch_range = custom_parameters['stretch_range']
-    else:
-        stretch_range = None
-
-    path_to_directory_of_midi_files = custom_parameters['midi_locator']['path_to_midi_file_directory']
+    path_to_directory_of_midi_files = custom_parameters['midi_locator']['path_to_directory_of_midi_files']
     whitelisted_midi_file_names = custom_parameters['midi_locator']['whitelisted_midi_file_names']
 
     validation_fraction = custom_parameters['validation_fraction']
@@ -73,29 +69,31 @@ def main():
     training_midi_files_count = int(training_fraction * total_midi_files_count)
     validation_midi_files_count = total_midi_files_count - training_midi_files_count
 
+    using_validation_set = (validation_midi_files_count != 0)
+
     random.shuffle(midi_file_paths_list)
 
     midi_file_paths_split = {
         'training': midi_file_paths_list[0:training_midi_files_count],
-        'validation': midi_file_paths_list[
-                      training_midi_files_count:training_midi_files_count + validation_midi_files_count]
+        'validation': midi_file_paths_list[training_midi_files_count:]
     }
 
     for set_name in ['training', 'validation']:
-        if (set_name == 'validation') and (validation_midi_files_count == 0):
-            print("No files included in the validation master note array. Skipping its creation.")
+        if (set_name == 'validation') and (not using_validation_set):
+            print("\nNo files included in the validation master note array. Skipping its creation.")
             continue
 
-        set_midi_file_paths_list = midi_file_paths_split[set_name]
+        partial_midi_file_paths_list = midi_file_paths_split[set_name]
 
-        print("\nGenerating {set_name} master note array using the these midi file paths:".format(set_name=set_name))
-        [print("\t" + path) for path in set_midi_file_paths_list]
+        print("\nGenerating {set_name} MasterNoteArray using the these midi file paths:".format(set_name=set_name))
+        [print("\t" + path) for path in partial_midi_file_paths_list]
 
-        note_array_transformer = NoteArrayTransformer(min_key_index=min_key_index, num_keys=num_keys,
+        note_array_transformer = NoteArrayTransformer(min_key_index=min_key_index,
+                                                      num_keys=num_keys,
                                                       resolution=resolution)
 
         master_note_array = MasterNoteArray(
-            midi_file_paths_list=set_midi_file_paths_list,
+            midi_file_paths_list=partial_midi_file_paths_list,
             note_array_transformer=note_array_transformer,
             num_augmentations_per_midi_file=num_augmentations_per_midi_file,
             stretch_range=stretch_range,
@@ -105,7 +103,14 @@ def main():
 
         i = 0
         while (True):
-            save_path = os.path.join(save_directory_path, file_name_prefix + "_" + set_name + "_" + str(i) + ".mna")
+
+            if using_validation_set:
+                set_name_string = "_" + set_name
+            else:
+                set_name_string = "_full"
+
+
+            save_path = os.path.join(save_directory_path, file_name_prefix + "_" + str(i) + set_name_string + ".mna")
 
             if not os.path.exists(save_path):
                 break

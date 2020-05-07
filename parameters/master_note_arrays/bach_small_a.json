@@ -11,7 +11,7 @@
   ],
   "time_steps_crop_range": [],
   "midi_locator": {
-    "path_to_midi_file_directory": "/Users/angsten/PycharmProjects/pianonet/data/midi/bach/",
+    "path_to_directory_of_midi_files": "/Users/angsten/PycharmProjects/pianonet/data/midi/bach/",
     "whitelisted_midi_file_names": []
   },
   "validation_fraction": 0.25
