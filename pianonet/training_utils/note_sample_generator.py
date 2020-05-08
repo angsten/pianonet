@@ -107,7 +107,7 @@ class NoteSampleGenerator(object):
                 use_zero_padding_for_out_of_bounds=True)
 
             target = self.master_note_array.get_values_in_range(
-                start_index=input_index_range[0] + 1,
+                start_index=(input_index_range[0] + 1) + (self.num_notes_in_model_input - 1),
                 end_index=input_index_range[1] + 1,
                 use_zero_padding_for_out_of_bounds=True)
 
