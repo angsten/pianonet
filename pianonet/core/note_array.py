@@ -71,10 +71,10 @@ class NoteArray(object):
 
     def get_values_in_range(self, start_index, end_index, use_zero_padding_for_out_of_bounds=False):
         """
-        start_index: Start index of desired note array values
-        end_index: End index (non-inclusive) of desired note array values
+        start_index: Start index of desired note array values (can be None for empty part of slice)
+        end_index: End index (non-inclusive) of desired note array values (can be None for empty part of slice)
         use_zero_padding_for_out_of_bounds: If true, zeros are returned for those indices in the range that are
-                                            out of bounds.
+                                            out of bounds. Must be false if either start or end indices are None
         """
 
         if use_zero_padding_for_out_of_bounds:
