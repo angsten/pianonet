@@ -8,7 +8,7 @@ import numpy as np
 from keras import backend as K
 
 
-def get_performance(model, seed_note_array, num_time_steps):
+def get_performance(model, seed_note_array, num_time_steps, validation_fraction=0.0):
     """
     Takes in a seed note array and generated num_timesteps of piano notes sampled
     from the model's output probabilities. A full NoteArray instance, including
@@ -20,6 +20,9 @@ def get_performance(model, seed_note_array, num_time_steps):
                      instance.
     model: The Keras trained model for generating the probabilities of new notes
     num_time_steps: How many new time steps of notes to generate using the model
+    validation_fraction: Float between 0 and 1 specifying the fraction of predicted notes for which the optimized
+                         model output will be randomly compared to the model.predict output every
+                         validation_step_size notes. Set to 0.0 for no validation (only necessary for debugging).
     """
 
     num_keys = seed_note_array.note_array_transformer.num_keys
@@ -160,17 +163,17 @@ def get_performance(model, seed_note_array, num_time_steps):
             print("==> Time step " + str(time_step) + " seconds of audio is " + str(seconds))
         for key in range(0, num_keys):
 
-            #             if key % 16 == 0:
-            #                 print("\t", key)
+            res_opt = get_output_tensor_at_node(input_position=input_end_index, layer_index=(len(model.layers) - 3))
 
-            #             res_model = model.predict([[raw_input]])[0][-1]
-            res = get_output_tensor_at_node(input_position=input_end_index, layer_index=(len(model.layers) - 3))
+            if random.uniform(0.0, 1.0) < validation_fraction:
+                res_model = model.predict([[raw_input]])[0][-1]
 
-            #             print("\n\nFinal result: ", res)
+                optimized_inconsistency_magnitude = abs(res_model - res_opt)
+                if optimized_inconsistency_magnitude > 1e-6:
+                    print("  Warning: Optimized output mode giving inconsistent results.")
+                    print("    Difference is " + str(optimized_inconsistency_magnitude))
 
-            #             print("\nModel prediction:", res_model)
-
-            pred = res > random.uniform(0.0, 1.0)
+            pred = (res_opt > random.uniform(0.0, 1.0))
             output_data.append(pred)
 
             raw_input.popleft()
@@ -180,9 +183,6 @@ def get_performance(model, seed_note_array, num_time_steps):
 
     print("\nTime per second of audio:", round((end - start) / (num_time_steps/48), 3), "seconds")
 
-    # In[81]:
-
-    # cleaned_final_pianoroll = np.array(output_data[0:-(len(output_data) % 64)])
     outputs_added = len(output_data) - seed_note_array.get_length_in_notes()
 
     print("Timesteps added:", outputs_added / num_keys)
