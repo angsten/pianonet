@@ -183,7 +183,7 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
 
         end = time.time()
 
-    print("\nTime per second of audio:", round((end - start) / (num_time_steps/48), 3), "seconds")
+    print("\nTime per second of audio:", round((end - start) / (num_time_steps / 48), 3), "seconds")
 
     outputs_added = len(output_data) - seed_note_array.get_length_in_notes()
 
