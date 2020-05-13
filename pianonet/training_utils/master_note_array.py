@@ -92,6 +92,8 @@ class MasterNoteArray(NoteArray):
 
         for midi_file_path in self.midi_file_paths_list:
 
+            print("\t==> Processing midi file at: " + midi_file_path)
+
             pianoroll = Pianoroll(midi_file_path)
 
             pianoroll.trim_silence_off_ends()
