@@ -7,6 +7,8 @@ from collections import deque
 import numpy as np
 from keras import backend as K
 
+from pianonet.model_building.get_model_input_shape import get_model_input_shape
+
 
 def get_performance(model, seed_note_array, num_time_steps, validation_fraction=0.0):
     """
@@ -27,7 +29,7 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
 
     num_keys = seed_note_array.note_array_transformer.num_keys
 
-    num_notes_in_model_input = model.get_input_shape_at(0)[1]
+    num_notes_in_model_input = get_model_input_shape(model)
 
     input_placeholder = model.input
     output_placeholders = [layer.output for layer in model.layers]
