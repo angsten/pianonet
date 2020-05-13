@@ -111,8 +111,8 @@ class NoteSampleGenerator(object):
                 end_index=input_index_range[1] + 1,
                 use_zero_padding_for_out_of_bounds=True)
 
-            inputs.append(input)
-            targets.append(target)
+            inputs.append(input.reshape((-1, 1)))
+            targets.append(target.reshape((-1, 1)))
 
         return (np.array(inputs), np.array(targets))
 
