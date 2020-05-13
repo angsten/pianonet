@@ -1,6 +1,3 @@
-
-
-
 def get_model_input_shape(model):
     """
     Returns the required (minimum) input size of a FCNN model by analyzing the conv1d layers.
@@ -15,6 +12,6 @@ def get_model_input_shape(model):
             dilation_rate = layer.dilation_rate[0]
             kernel_size = layer.kernel_size[0]
 
-            model_input_size += (kernel_size - 1)*dilation_rate
+            model_input_size += (kernel_size - 1) * dilation_rate
 
     return model_input_size
