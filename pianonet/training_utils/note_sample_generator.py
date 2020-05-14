@@ -53,6 +53,13 @@ class NoteSampleGenerator(object):
 
         return len(self.randomized_prediction_start_indices)
 
+    def set_prediction_start_indices_index(self, prediction_start_indices_index):
+        """
+        prediction_start_indices_index: The new prediction_start_indices_index to set the index to.
+        """
+
+        self.prediction_start_indices_index = prediction_start_indices_index
+
     def get_then_update_prediction_start_index(self):
         """
         Return the current position tracking the location of the next series of predictions returned from the master
@@ -122,3 +129,24 @@ class NoteSampleGenerator(object):
         """
 
         return self
+
+    def get_summary_string(self):
+        """
+        Returns summary string that is useful for quickly comparing whether two sample generators are the same.
+        """
+
+        summary_string = "- " * 10
+        summary_string += "\nTotal notes in generator: " + '{:,}'.format(self.master_note_array.get_length_in_notes())
+        summary_string += "\nTotal samples in generator: " + '{:,}'.format(self.get_total_samples_count())
+        summary_string += "\nPrediction start indices index: " + '{:,}'.format(self.prediction_start_indices_index)
+        summary_string += "\nBatch size: " + str(self.batch_size)
+        summary_string += "\nNumber of predicted notes in each sample: " + '{:,}'.format(
+            self.num_predicted_notes_in_sample)
+        summary_string += "\nNumber of notes of model input in each sample: " + '{:,}'.format(
+            self.num_notes_in_model_input)
+        summary_string += "\nNote array data hash: " + self.master_note_array.get_hash_string()
+        summary_string += "\nRandom prediction start indices hash: "
+        summary_string += str(hash(self.randomized_prediction_start_indices.data.tobytes()))
+        summary_string += "\n" + "- " * 10
+
+        return summary_string
