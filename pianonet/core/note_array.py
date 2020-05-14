@@ -134,6 +134,14 @@ class NoteArray(object):
 
         return values
 
+    def get_hash_string(self):
+        """
+        Returns a hash of the data contained in self.array. This is useful for verifying that two note arrays are
+        indeed the same.
+        """
+
+        return hash(self.array.data.tobytes())
+
     def save(self, file_path):
         """
         file_path: Path indicating where on disc to save the NoteArray instance.
