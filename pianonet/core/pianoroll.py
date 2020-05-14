@@ -74,6 +74,15 @@ class Pianoroll(object):
 
         return Multitrack(tracks=[track], tempo=120, downbeat=None, beat_resolution=24)
 
+    def save_to_midi_file(self, file_path):
+        """
+        Saves the Pianoroll instance to midi file on disc.
+
+        file_path: Where to save the file.
+        """
+
+        self.get_multitrack().write(filename=file_path)
+
     def play(self):
         """
         Play the notes represented in self.array as a midi audio output.
