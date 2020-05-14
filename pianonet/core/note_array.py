@@ -138,7 +138,7 @@ class NoteArray(object):
         indeed the same.
         """
 
-        return hash(self.array.data.tobytes())
+        return str(hash(self.array.data.tobytes()))
 
     def save(self, file_path):
         """
