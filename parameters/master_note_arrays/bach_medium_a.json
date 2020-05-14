@@ -1,17 +1,17 @@
 {
-  "file_name_prefix": "bach_large_a",
+  "file_name_prefix": "bach_medium_a",
   "min_key_index": 34,
   "num_keys": 64,
   "resolution": 1.0,
   "end_padding_time_steps": 288,
-  "num_augmentations_per_midi_file": 4,
+  "num_augmentations_per_midi_file": 10,
   "stretch_range": [
-    0.9,
-    1.1
+    0.85,
+    1.2
   ],
   "time_steps_crop_range": [],
   "midi_locator": {
-    "path_to_directory_of_midi_files": "/Users/angsten/PycharmProjects/pianonet/data/midi/j_s_bach/",
+    "path_to_directory_of_midi_files": "/Users/angsten/PycharmProjects/pianonet/data/sources/j_s_bach/kept/",
     "whitelisted_midi_file_names": []
   },
   "validation_fraction": 0.2
