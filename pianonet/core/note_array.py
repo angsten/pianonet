@@ -93,14 +93,12 @@ class NoteArray(object):
         max_ending_time_step = self.get_length_in_timesteps() - num_time_steps
 
         starting_time_step = random.randint(0, max_ending_time_step)
-        starting_note_index = starting_time_step*self.note_array_transformer.num_keys
-        ending_note_index = starting_note_index + num_time_steps*self.note_array_transformer.num_keys
+        starting_note_index = starting_time_step * self.note_array_transformer.num_keys
+        ending_note_index = starting_note_index + num_time_steps * self.note_array_transformer.num_keys
 
         array = self.array[starting_note_index:ending_note_index]
 
         return self.note_array_transformer.get_note_array(flat_array=array)
-
-
 
     def get_values_in_range(self, start_index, end_index, use_zero_padding_for_out_of_bounds=False):
         """
