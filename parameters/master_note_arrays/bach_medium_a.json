@@ -11,7 +11,9 @@
   ],
   "time_steps_crop_range": [],
   "midi_locator": {
-    "path_to_directory_of_midi_files": "/Users/angsten/PycharmProjects/pianonet/data/sources/j_s_bach/kept/",
+    "paths_to_directories_of_midi_files": [
+      "/Users/angsten/PycharmProjects/pianonet/data/sources/j_s_bach/kept/"
+    ],
     "whitelisted_midi_file_names": []
   },
   "validation_fraction": 0.2

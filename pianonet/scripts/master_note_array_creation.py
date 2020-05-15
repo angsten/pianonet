@@ -53,13 +53,16 @@ def main():
     time_steps_crop_range = custom_parameters['time_steps_crop_range'] if (
             custom_parameters['time_steps_crop_range'] != []) else None
 
-    path_to_directory_of_midi_files = custom_parameters['midi_locator']['path_to_directory_of_midi_files']
+    paths_to_directories_of_midi_files = custom_parameters['midi_locator']['paths_to_directories_of_midi_files']
     whitelisted_midi_file_names = custom_parameters['midi_locator']['whitelisted_midi_file_names']
 
     validation_fraction = custom_parameters['validation_fraction']
     training_fraction = 1.0 - validation_fraction
 
-    midi_file_paths_list = get_midi_file_paths_list(path_to_directory_of_midi_files)
+    midi_file_paths_list = []
+
+    for path_to_directory_of_midi_files in paths_to_directories_of_midi_files:
+        midi_file_paths_list += get_midi_file_paths_list(path_to_directory_of_midi_files)
 
     if len(whitelisted_midi_file_names) != 0:
         midi_file_paths_list = [file_path for file_path in midi_file_paths_list if
