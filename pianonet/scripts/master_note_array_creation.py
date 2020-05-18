@@ -47,7 +47,7 @@ def main():
     num_keys = custom_parameters['num_keys']
     resolution = custom_parameters['resolution']
 
-    end_padding_time_steps = custom_parameters['end_padding_time_steps']
+    end_padding_range_in_seconds = custom_parameters['end_padding_range_in_seconds']
     num_augmentations_per_midi_file = custom_parameters['num_augmentations_per_midi_file']
     stretch_range = custom_parameters['stretch_range'] if (custom_parameters['stretch_range'] != []) else None
     time_steps_crop_range = custom_parameters['time_steps_crop_range'] if (
@@ -100,7 +100,7 @@ def main():
             note_array_transformer=note_array_transformer,
             num_augmentations_per_midi_file=num_augmentations_per_midi_file,
             stretch_range=stretch_range,
-            end_padding_time_steps=end_padding_time_steps,
+            end_padding_range_in_seconds=end_padding_range_in_seconds,
             time_steps_crop_range=time_steps_crop_range,
         )
 

@@ -1,0 +1,29 @@
+{
+  "file_name_prefix": "testing_a",
+  "min_key_index": 34,
+  "num_keys": 64,
+  "resolution": 1.0,
+  "end_padding_range_in_seconds": [
+    0.0,
+    10.0
+  ],
+  "num_augmentations_per_midi_file": 4,
+  "stretch_range": [
+    0.85,
+    1.2
+  ],
+  "time_steps_crop_range": [
+    0,
+    100
+  ],
+  "midi_locator": {
+    "paths_to_directories_of_midi_files": [
+      "/Users/angsten/PycharmProjects/pianonet/data/sources/j_s_bach/kept/"
+    ],
+    "whitelisted_midi_file_names": [
+      "bach_inventions_773_(c)simonetto.mid",
+      "bach_inventions_774_(c)simonetto.mid"
+    ]
+  },
+  "validation_fraction": 0.0
+}

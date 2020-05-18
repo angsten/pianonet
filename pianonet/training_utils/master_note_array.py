@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 
 from pianonet.core.misc_tools import get_noisily_spaced_floats
@@ -26,7 +28,7 @@ class MasterNoteArray(NoteArray):
                  note_array_transformer=None,
                  num_augmentations_per_midi_file=1,
                  stretch_range=None,
-                 end_padding_time_steps=0,
+                 end_padding_range_in_seconds=[0, 0],
                  time_steps_crop_range=None,
                  ):
         """
@@ -35,7 +37,7 @@ class MasterNoteArray(NoteArray):
         note_array_transformer: NoteArrayTransformer instance specifying how to crop and down-sample a pianoroll
         num_augmentations_per_midi_file: How many stretched pianoroll augmentations to create from each midi file
         stretch_range: A tuple of two floats in range (0.0, infinity) specifying the valid range for stretch fractions
-        end_padding_time_steps: How much padding in time steps to add to the end of pianorolls before conccatenating
+        end_padding_range_in_seconds: Range of how much padding in seconds to add to the ends of pianorolls
         time_steps_crop_range: Mostly for debugging - chop each pianoroll to be within time_steps_crop_range timesteps
         """
 
@@ -47,7 +49,7 @@ class MasterNoteArray(NoteArray):
             self.note_array_transformer = note_array_transformer
             self.num_augmentations_per_midi_file = num_augmentations_per_midi_file
             self.stretch_range = stretch_range if (stretch_range != None) else (1.0, 1.0)
-            self.end_padding_time_steps = end_padding_time_steps
+            self.end_padding_range_in_seconds = end_padding_range_in_seconds
             self.time_steps_crop_range = time_steps_crop_range
 
             self.array = self.get_concatenated_flat_array()
@@ -58,6 +60,8 @@ class MasterNoteArray(NoteArray):
         """
 
         flat_arrays_list = self.get_flat_arrays_list()
+
+        random.shuffle(flat_arrays_list)
 
         total_array_length = np.sum([flat_array.shape[0] for flat_array in flat_arrays_list])
 
@@ -110,7 +114,11 @@ class MasterNoteArray(NoteArray):
 
                 stretched_pianoroll = pianoroll.get_stretched(stretch_fraction=stretch_fraction)
 
-                stretched_pianoroll.add_zero_padding(right_padding_timesteps=self.end_padding_time_steps)
+                time_steps_per_second = 48
+                end_padding_time_steps = random.uniform(self.end_padding_range_in_seconds[0] * time_steps_per_second,
+                                                        self.end_padding_range_in_seconds[1] * time_steps_per_second)
+
+                stretched_pianoroll.add_zero_padding(right_padding_timesteps=int(end_padding_time_steps))
 
                 flat_array = self.note_array_transformer.get_flat_array_from_pianoroll(pianoroll=stretched_pianoroll)
 
