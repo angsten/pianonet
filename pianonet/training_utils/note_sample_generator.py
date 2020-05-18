@@ -1,6 +1,6 @@
-import numpy as np
 import pickle
 
+import numpy as np
 
 from pianonet.core.misc_tools import get_hash_string_of_numpy_array
 
