@@ -1,0 +1,21 @@
+{
+  "file_name_prefix": "bach_and_mozart_medium_a",
+  "min_key_index": 34,
+  "num_keys": 64,
+  "resolution": 1.0,
+  "end_padding_time_steps": 200,
+  "num_augmentations_per_midi_file": 10,
+  "stretch_range": [
+    0.85,
+    1.2
+  ],
+  "time_steps_crop_range": [],
+  "midi_locator": {
+    "paths_to_directories_of_midi_files": [
+      "/Users/angsten/PycharmProjects/pianonet/data/sources/j_s_bach/kept/",
+      "/Users/angsten/PycharmProjects/pianonet/data/sources/w_a_mozart/kept/"
+    ],
+    "whitelisted_midi_file_names": []
+  },
+  "validation_fraction": 0.1
+}
