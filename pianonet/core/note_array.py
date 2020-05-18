@@ -3,6 +3,8 @@ import random
 
 import numpy as np
 
+from pianonet.core.misc_tools import get_hash_string_of_numpy_array
+
 
 class NoteArray(object):
     """
@@ -138,7 +140,7 @@ class NoteArray(object):
         indeed the same.
         """
 
-        return str(hash(self.array.data.tobytes()))
+        return get_hash_string_of_numpy_array(self.array)
 
     def save(self, file_path):
         """
