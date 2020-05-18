@@ -1,3 +1,5 @@
+import hashlib
+
 import numpy as np
 
 
@@ -17,3 +19,11 @@ def get_noisily_spaced_floats(start, end, num_points):
     noise_to_add_array = np.random.random(num_points) * ((end - start) / num_points)
 
     return evenly_spaced_points + noise_to_add_array
+
+
+def get_hash_string_of_numpy_array(array):
+    """
+    Returns a 32 character long string that is a deterministic hash of a numpy array's data.
+    """
+
+    return hashlib.md5(array.data.tobytes()).hexdigest()
