@@ -1,4 +1,6 @@
 import numpy as np
+import pickle
+
 
 from pianonet.core.misc_tools import get_hash_string_of_numpy_array
 
@@ -48,6 +50,13 @@ class NoteSampleGenerator(object):
 
         np.random.seed(random_seed)
         np.random.shuffle(self.randomized_prediction_start_indices)
+
+    def __iter__(self):
+        """
+        Allows this class to serve as an iterable object.
+        """
+
+        return self
 
     def get_total_samples_count(self):
         """
@@ -143,13 +152,6 @@ class NoteSampleGenerator(object):
 
         return (np.array(inputs), np.array(targets))
 
-    def __iter__(self):
-        """
-        Allows this class to serve as an iterable object.
-        """
-
-        return self
-
     def get_identifier_hash_string(self):
         """
         Returns a string that serves as a unique identifier of the generator. If this hash is the same, the data
@@ -182,3 +184,43 @@ class NoteSampleGenerator(object):
         summary_string += "\n" + "- " * 10
 
         return summary_string
+
+    def get_state_dictionary(self):
+        """
+        Returns dictionary specifying state of this generator. The state is basically where in the dataset this
+        generator currently points, making sure progress is tracked. The state is NOT the data or the prediction
+        indices.
+        """
+
+        state = {}
+
+        state['prediction_start_indices_index'] = self.prediction_start_indices_index
+        state['full_runs_through_data_count'] = self.full_runs_through_data_count
+
+        return state
+
+    def set_state(self, state_dictionary):
+        """
+        Set this generator's state from a given state_dictionary.
+
+        state_dictionary: A dictionary containing the state of a generator (as defined in get_state_dictionary).
+        """
+
+        self.prediction_start_indices_index = state_dictionary['prediction_start_indices_index']
+        self.full_runs_through_data_count = state_dictionary['full_runs_through_data_count']
+
+    def save_state(self, file_path):
+        """
+        Save generators state to file.
+        """
+
+        with open(file_path, 'wb') as file:
+            pickle.dump(self.get_state_dictionary(), file)
+
+    def load_state(self, file_path):
+        """
+        Load a previous generator's state saved to file into this generator.
+        """
+
+        with open(file_path, 'rb') as file:
+            self.set_state(state_dictionary=pickle.load(file))
