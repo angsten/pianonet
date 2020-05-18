@@ -1,5 +1,7 @@
 import numpy as np
 
+from pianonet.core.misc_tools import get_hash_string_of_numpy_array
+
 
 class NoteSampleGenerator(object):
     """
@@ -37,6 +39,7 @@ class NoteSampleGenerator(object):
         self.batch_size = batch_size
 
         self.prediction_start_indices_index = 0
+        self.full_runs_through_data_count = 0
 
         # Each sample will be generated relative to these indices, which track where the series of predicted notes begin
         self.randomized_prediction_start_indices = np.arange(start=0,
@@ -52,6 +55,22 @@ class NoteSampleGenerator(object):
         """
 
         return len(self.randomized_prediction_start_indices)
+
+    def get_total_batches_count(self):
+        """
+        Returns total number of unique batches of samples this generator can output before looping back through
+        the data.
+        """
+
+        return self.get_total_samples_count() // self.batch_size
+
+    def get_fraction_data_seen(self):
+        """
+        Returns the fraction of data already generated. For example, if all samples have been generated once as well as
+        30% of the second pass through, this method will return 1.3.
+        """
+
+        return self.full_runs_through_data_count + self.prediction_start_indices_index / self.get_total_samples_count()
 
     def set_prediction_start_indices_index(self, prediction_start_indices_index):
         """
@@ -72,6 +91,7 @@ class NoteSampleGenerator(object):
 
         if self.prediction_start_indices_index >= self.get_total_samples_count():
             self.prediction_start_indices_index = 0
+            self.full_runs_through_data_count += 1
 
         return prediction_start_index
 
@@ -130,23 +150,35 @@ class NoteSampleGenerator(object):
 
         return self
 
+    def get_identifier_hash_string(self):
+        """
+        Returns a string that serves as a unique identifier of the generator. If this hash is the same, the data
+        and how it's indexed are exactly the same. Note, this hash does not include the state of the generator,
+        such as where the current prediction index is located.
+        """
+
+        return self.master_note_array.get_hash_string() + " " + get_hash_string_of_numpy_array(
+            self.randomized_prediction_start_indices)
+
     def get_summary_string(self):
         """
         Returns summary string that is useful for quickly comparing whether two sample generators are the same.
         """
 
         summary_string = "- " * 10
-        summary_string += "\nTotal notes in generator: " + '{:,}'.format(self.master_note_array.get_length_in_notes())
+        summary_string += "\nGenerator identifier hash string: " + self.get_identifier_hash_string()
+
+        summary_string += "\n\nTotal notes in generator: " + '{:,}'.format(self.master_note_array.get_length_in_notes())
         summary_string += "\nTotal samples in generator: " + '{:,}'.format(self.get_total_samples_count())
-        summary_string += "\nPrediction start indices index: " + '{:,}'.format(self.prediction_start_indices_index)
         summary_string += "\nBatch size: " + str(self.batch_size)
-        summary_string += "\nNumber of predicted notes in each sample: " + '{:,}'.format(
-            self.num_predicted_notes_in_sample)
-        summary_string += "\nNumber of notes of model input in each sample: " + '{:,}'.format(
-            self.num_notes_in_model_input)
-        summary_string += "\nNote array data hash: " + self.master_note_array.get_hash_string()
-        summary_string += "\nRandom prediction start indices hash: "
-        summary_string += str(hash(self.randomized_prediction_start_indices.data.tobytes()))
+        summary_string += "\nNumber of time steps of model input in each sample: " + '{:,}'.format(
+            self.num_notes_in_model_input // self.master_note_array.note_array_transformer.num_keys)
+        summary_string += "\nNumber of predicted time steps in each sample: " + '{:,}'.format(
+            self.num_predicted_notes_in_sample // self.master_note_array.note_array_transformer.num_keys)
+
+        summary_string += "\n\nPercent of data seen: " + str(round(self.get_fraction_data_seen() * 100, 2)) + "%"
+        summary_string += "\nPrediction start indices index: " + '{:,}'.format(self.prediction_start_indices_index)
+
         summary_string += "\n" + "- " * 10
 
         return summary_string
