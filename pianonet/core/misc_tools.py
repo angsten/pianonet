@@ -1,6 +1,7 @@
 import hashlib
 
 import numpy as np
+import pickle
 
 
 def get_noisily_spaced_floats(start, end, num_points):
@@ -27,3 +28,19 @@ def get_hash_string_of_numpy_array(array):
     """
 
     return hashlib.md5(array.data.tobytes()).hexdigest()
+
+def save_dictionary_to_json_file(dictionary, json_file_path):
+    """
+    Saves dictionary to file at json_file_path.
+    """
+
+    with open(json_file_path, 'wb') as json_file:
+        pickle.dump(dictionary, json_file_path)
+
+def load_dictionary_from_json_file(json_file_path):
+    """
+    Loads a dictionary from file at json_file_path, returns the dictionary.
+    """
+
+    with open(json_file_path, 'rb') as json_file_path:
+        return pickle.load(json_file_path)
