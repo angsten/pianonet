@@ -8,6 +8,7 @@ from keras.optimizers import Adam
 
 from pianonet.core.misc_tools import save_dictionary_to_json_file, load_dictionary_from_json_file
 from pianonet.model_building.get_model_input_shape import get_model_input_shape
+from pianonet.training_utils.custom_keras_callbacks import ExecuteEveryNBatchesCallback
 from pianonet.training_utils.master_note_array import MasterNoteArray
 from pianonet.training_utils.note_sample_generator import NoteSampleGenerator
 
@@ -35,7 +36,11 @@ class Run(object):
             self.load_state()
             self.state['run_index'] += 1
 
-            ### TODO change run_description model path to last trained model
+            previous_model_path = self.get_previous_run_index_prefixed_path('trained.model')
+
+            print("Using previous model at " + previous_model_path)
+            run_description['model_description']['model_path'] = previous_model_path
+            del run_description['model_description']['model_initializer']
         else:
             print("No previously saved state found. Starting as a new run.")
             self.state = {
@@ -78,27 +83,36 @@ class Run(object):
     def get_status(self):
         return self.state['status']
 
-    def get_run_index_prepended_file_base_name(self, file_base_name):
-
-        return str(self.get_run_index()) + "_" + file_base_name
-
     def get_full_path_from_run_file_name(self, file_name):
-
         return os.path.join(self.path, file_name)
 
-    def get_index_prepended_full_path_from_run_file_base_name(self, file_base_name):
+    def get_index_prepended_file_base_name(self, index, file_base_name):
+        return str(index) + "_" + file_base_name
 
-        return self.get_full_path_from_run_file_name(self.get_run_index_prepended_file_base_name(file_base_name))
+    def get_previous_run_index_prefixed_path(self, file_base_name):
+        return self.get_full_path_from_run_file_name(
+            self.get_index_prepended_file_base_name(
+                index=self.get_run_index() - 1,
+                file_base_name=file_base_name,
+            )
+        )
 
-    def fetch_model(self):
-        model_description = self.run_description['model_description']
+    def get_run_index_prefixed_path(self, file_base_name):
+        return self.get_full_path_from_run_file_name(
+            self.get_index_prepended_file_base_name(
+                index=self.get_run_index(),
+                file_base_name=file_base_name,
+            )
+        )
+
+    def fetch_model(self, model_description):
 
         if 'model_initializer' in model_description:
             model_initializer = model_description['model_initializer']
             print("Initializing model using file at " + model_initializer['path'])
             print("Params used for model initialization are " + str(model_initializer['params']))
 
-            model_output_path = self.get_index_prepended_full_path_from_run_file_base_name("initial_model.model")
+            model_output_path = self.get_run_index_prefixed_path("initial.model")
             model_parameters_file_path = self.get_full_path_from_run_file_name('model_parameters')
 
             with open(model_parameters_file_path, 'wb') as file:
@@ -122,18 +136,30 @@ class Run(object):
         else:
             raise Exception("No method of creating or loading the model has been specified in the run description.")
 
-        print("\nModel has been set. Model summary:\n")
+        print("\nModel has been set. Model summary:")
 
         num_notes_in_model_input = get_model_input_shape(self.model)
 
         time_steps_receptive_field = num_notes_in_model_input / self.note_array_transformer.num_keys
 
+        print("- "*40)
         print("Number of notes in model input: " + str(num_notes_in_model_input))
         print("Time steps in receptive field: " + str(time_steps_receptive_field))
         print("Seconds in receptive field: " + str(round((time_steps_receptive_field) / 48, 2)))
         print()
+        self.model.summary()
+        print("- "*40)
 
-        print(self.model.summary())
+
+    def checkpoint_method_creator(self, training_note_sample_generator):
+        def checkpoint_method():
+            self.save_state()
+            self.model.save(self.get_run_index_prefixed_path('trained.model'))
+
+            generator_checkpoint_path = self.get_run_index_prefixed_path('generator_state.gs')
+            training_note_sample_generator.save_state(generator_checkpoint_path)
+
+        return checkpoint_method
 
     def execute(self, run_description):
         """
@@ -147,8 +173,7 @@ class Run(object):
 
         save_dictionary_to_json_file(
             dictionary=run_description,
-            json_file_path=self.get_index_prepended_full_path_from_run_file_base_name('run_descipion.json'))
-        self.save_state()
+            json_file_path=self.get_run_index_prefixed_path('run_desciption.json'))
 
         data_description = run_description['data_description']
 
@@ -163,7 +188,7 @@ class Run(object):
         validation_master_note_array = MasterNoteArray(file_path=validation_master_note_array_path)
 
         print()
-        self.fetch_model()
+        self.fetch_model(model_description=run_description['model_description'])
 
         training_description = run_description['training_description']
         training_batch_size = training_description['batch_size']
@@ -191,10 +216,11 @@ class Run(object):
             batch_size=validation_batch_size,
             random_seed=0)
 
-        ### CHECK FOR TRAINING GENERATOR STATE HERE
-        # training_note_sample_generator.load_state(file_path='bla2.gs')
+        if self.get_run_index() != 0:
+            generator_checkpoint_path = self.get_previous_run_index_prefixed_path('generator_state.gs')
+            training_note_sample_generator.load_state(file_path=generator_checkpoint_path)
 
-        print(training_note_sample_generator.get_summary_string(), '\n')
+        print('\n', training_note_sample_generator.get_summary_string(), '\n')
 
         optimizer_description = training_description['optimizer_description']
 
@@ -203,12 +229,11 @@ class Run(object):
         else:
             raise Exception("Optimizer type " + optimizer_description['type'] + " not yet supported.")
 
-        ### ONLY DO THIS IF OPTIMIZER STATE HAS CHANGED
         if self.get_run_index() == 0:  ##TODO ADD or (optimizer kwargs has changed from last run)
             print("Compiling the model.")
             self.model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=[])
 
-        model_save_name = self.get_index_prepended_full_path_from_run_file_base_name('trained_model.model')
+        model_save_name = self.get_run_index_prefixed_path('trained.model')
 
         fraction_training_data_each_epoch = training_description['fraction_data_each_epoch']
         fraction_validation_data_each_epoch = validation_description['fraction_data_each_epoch']
@@ -230,6 +255,11 @@ class Run(object):
                                               mode='auto',
                                               period=1)
 
+        save_state_callback = ExecuteEveryNBatchesCallback(
+            run_frequency_in_batches=training_description['checkpoint_frequency_in_steps'],
+            method_to_run=self.checkpoint_method_creator(training_note_sample_generator=training_note_sample_generator)
+        )
+
         self.model.fit_generator(
             generator=training_note_sample_generator,
             epochs=epochs,
@@ -237,5 +267,5 @@ class Run(object):
             steps_per_epoch=training_steps_per_epoch,
             validation_data=validation_note_sample_generator,
             validation_steps=validation_steps_per_epoch,
-            callbacks=[checkpoint_callback]
+            callbacks=[checkpoint_callback, save_state_callback]
         )
