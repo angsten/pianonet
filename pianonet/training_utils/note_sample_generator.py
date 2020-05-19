@@ -1,8 +1,7 @@
-import pickle
-
 import numpy as np
 
 from pianonet.core.misc_tools import get_hash_string_of_numpy_array
+from pianonet.core.misc_tools import save_dictionary_to_json_file, load_dictionary_from_json_file
 
 
 class NoteSampleGenerator(object):
@@ -167,7 +166,7 @@ class NoteSampleGenerator(object):
         Returns summary string that is useful for quickly comparing whether two sample generators are the same.
         """
 
-        summary_string = "- " * 10
+        summary_string = "- " * 50
         summary_string += "\nGenerator identifier hash string: " + self.get_identifier_hash_string()
 
         summary_string += "\n\nTotal notes in generator: " + '{:,}'.format(self.master_note_array.get_length_in_notes())
@@ -181,7 +180,7 @@ class NoteSampleGenerator(object):
         summary_string += "\n\nPercent of data seen: " + str(round(self.get_fraction_data_seen() * 100, 2)) + "%"
         summary_string += "\nPrediction start indices index: " + '{:,}'.format(self.prediction_start_indices_index)
 
-        summary_string += "\n" + "- " * 10
+        summary_string += "\n" + "- " * 50
 
         return summary_string
 
@@ -214,13 +213,11 @@ class NoteSampleGenerator(object):
         Save generators state to file.
         """
 
-        with open(file_path, 'wb') as file:
-            pickle.dump(self.get_state_dictionary(), file)
+        save_dictionary_to_json_file(dictionary=self.get_state_dictionary(), json_file_path=file_path)
 
     def load_state(self, file_path):
         """
         Load a previous generator's state saved to file into this generator.
         """
 
-        with open(file_path, 'rb') as file:
-            self.set_state(state_dictionary=pickle.load(file))
+        self.set_state(state_dictionary=load_dictionary_from_json_file(json_file_path=file_path))
