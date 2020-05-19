@@ -1,6 +1,7 @@
 import os
 import pickle
 import subprocess
+import logging
 
 from keras.callbacks import ModelCheckpoint
 from keras.models import load_model
@@ -25,31 +26,36 @@ class Run(object):
         path: Directory in which the run is executed.
         """
 
+        self.logger = logging.getLogger(__name__)
+        f_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        f_handler = logging.FileHandler(self.get_full_path_from_run_file_name('output.txt'))
+        f_handler.setFormatter(f_format)
+        self.logger.addHandler(f_handler)
+
         self.path = path
 
-        print("Beginning run at " + path)
+        self.logger.info("Beginning run at " + path)
 
         run_description = load_dictionary_from_json_file(json_file_path=self.get_run_description_path())
 
         if os.path.exists(self.get_state_path()):
-            print("Saved state found. Restarting the run and incrementing the run index.")
+            self.logger.info("Saved state found. Restarting the run and incrementing the run index.")
             self.load_state()
             self.state['run_index'] += 1
 
             previous_model_path = self.get_previous_run_index_prefixed_path('trained.model')
-
-            print("Using previous model at " + previous_model_path)
+            self.logger.info("Using previous model at " + previous_model_path)
             run_description['model_description']['model_path'] = previous_model_path
             del run_description['model_description']['model_initializer']
+
         else:
-            print("No previously saved state found. Starting as a new run.")
+            self.logger.info("No previously saved state found. Starting as a new run.")
             self.state = {
                 'run_index': 0,
                 'status': 'running',
             }
 
-        print("State of run is:")
-        print(self.state)
+        self.logger.info("State of run before execution is:", str(self.state))
 
         self.execute(run_description)
 
@@ -106,11 +112,11 @@ class Run(object):
         )
 
     def fetch_model(self, model_description):
-
-        if 'model_initializer' in model_description:
+        self.logger.info('\n')
+        if (model_description['model_path'] == "") and ('model_initializer' in model_description):
             model_initializer = model_description['model_initializer']
-            print("Initializing model using file at " + model_initializer['path'])
-            print("Params used for model initialization are " + str(model_initializer['params']))
+            self.logger.info("Initializing model using file at " + model_initializer['path'])
+            self.logger.info("Params used for model initialization are " + str(model_initializer['params']))
 
             model_output_path = self.get_run_index_prefixed_path("initial.model")
             model_parameters_file_path = self.get_full_path_from_run_file_name('model_parameters')
@@ -120,8 +126,8 @@ class Run(object):
 
             model_creation_command = "python " + model_initializer[
                 'path'] + " " + model_parameters_file_path + " " + model_output_path
-            print("\nCalling model creator with command:")
-            print(model_creation_command)
+            self.logger.info("\nCalling model creator with command:")
+            self.logger.info(model_creation_command)
 
             subprocess.run(model_creation_command, shell=True, check=True)
 
@@ -130,26 +136,25 @@ class Run(object):
             self.model = load_model(model_output_path)
 
         elif model_description['model_path'] != "":
-            print("Loading model at " + model_description['model_path'])
+            self.logger.info("Loading model at " + model_description['model_path'])
 
             self.model = load_model(model_description['model_path'])
         else:
             raise Exception("No method of creating or loading the model has been specified in the run description.")
 
-        print("\nModel has been set. Model summary:")
+        self.logger.info("\nModel has been set. Model summary:")
 
         num_notes_in_model_input = get_model_input_shape(self.model)
 
         time_steps_receptive_field = num_notes_in_model_input / self.note_array_transformer.num_keys
 
-        print("- "*40)
-        print("Number of notes in model input: " + str(num_notes_in_model_input))
-        print("Time steps in receptive field: " + str(time_steps_receptive_field))
-        print("Seconds in receptive field: " + str(round((time_steps_receptive_field) / 48, 2)))
-        print()
-        self.model.summary()
-        print("- "*40)
-
+        self.logger.info("- " * 40)
+        self.logger.info("Number of notes in model input: " + str(num_notes_in_model_input))
+        self.logger.info("Time steps in receptive field: " + str(time_steps_receptive_field))
+        self.logger.info("Seconds in receptive field: " + str(round((time_steps_receptive_field) / 48, 2)))
+        self.logger.info('\n')
+        self.model.summary(print_fn=logger.info)
+        self.logger.info("- " * 40)
 
     def checkpoint_method_creator(self, training_note_sample_generator):
         def checkpoint_method():
@@ -161,6 +166,18 @@ class Run(object):
 
         return checkpoint_method
 
+    def fetch_data(self, data_description):
+        self.logger.info('\n')
+        training_master_note_array_path = data_description['training_master_note_array_path']
+        self.logger.info("Loading training master note array from " + training_master_note_array_path)
+        self.training_master_note_array = MasterNoteArray(file_path=training_master_note_array_path)
+        self.note_array_transformer = self.training_master_note_array.note_array_transformer
+        self.num_keys = self.note_array_transformer.num_keys
+
+        self.validation_master_note_array_path = data_description['validation_master_note_array_path']
+        self.logger.info("Loading validation master note array from " + self.validation_master_note_array_path)
+        validation_master_note_array = MasterNoteArray(file_path=self.alidation_master_note_array_path)
+
     def execute(self, run_description):
         """
         Begins a model training session following the specifications in the provided run_description.
@@ -168,26 +185,15 @@ class Run(object):
         run_description: Dictionary specifying how the model training session should be carried out.
         """
 
-        print("\nExecuting run description:")
-        print(run_description)
+        self.logger.info("\nExecuting run description:")
+        self.logger.info(run_description)
 
         save_dictionary_to_json_file(
             dictionary=run_description,
-            json_file_path=self.get_run_index_prefixed_path('run_desciption.json'))
+            json_file_path=self.get_run_index_prefixed_path('run_desciption.json')
+        )
 
-        data_description = run_description['data_description']
-
-        training_master_note_array_path = data_description['training_master_note_array_path']
-        print("Loading training master note array from " + training_master_note_array_path)
-        training_master_note_array = MasterNoteArray(file_path=training_master_note_array_path)
-        self.note_array_transformer = training_master_note_array.note_array_transformer
-        self.num_keys = self.note_array_transformer.num_keys
-
-        validation_master_note_array_path = data_description['validation_master_note_array_path']
-        print("Loading validation master note array from " + validation_master_note_array_path)
-        validation_master_note_array = MasterNoteArray(file_path=validation_master_note_array_path)
-
-        print()
+        self.fetch_data(data_description=run_description['data_description'])
         self.fetch_model(model_description=run_description['model_description'])
 
         training_description = run_description['training_description']
@@ -198,7 +204,7 @@ class Run(object):
         num_notes_in_model_input = get_model_input_shape(self.model)
 
         training_note_sample_generator = NoteSampleGenerator(
-            master_note_array=training_master_note_array,
+            master_note_array=self.training_master_note_array,
             num_notes_in_model_input=num_notes_in_model_input,
             num_predicted_notes_in_sample=num_predicted_notes_in_training_sample,
             batch_size=training_batch_size,
@@ -210,7 +216,7 @@ class Run(object):
             'num_predicted_time_steps_in_sample']
 
         validation_note_sample_generator = NoteSampleGenerator(
-            master_note_array=validation_master_note_array,
+            master_note_array=self.validation_master_note_array,
             num_notes_in_model_input=num_notes_in_model_input,
             num_predicted_notes_in_sample=num_predicted_notes_in_validation_sample,
             batch_size=validation_batch_size,
@@ -220,7 +226,7 @@ class Run(object):
             generator_checkpoint_path = self.get_previous_run_index_prefixed_path('generator_state.gs')
             training_note_sample_generator.load_state(file_path=generator_checkpoint_path)
 
-        print('\n', training_note_sample_generator.get_summary_string(), '\n')
+        self.logger.info('\n', training_note_sample_generator.get_summary_string(), '\n')
 
         optimizer_description = training_description['optimizer_description']
 
@@ -230,7 +236,7 @@ class Run(object):
             raise Exception("Optimizer type " + optimizer_description['type'] + " not yet supported.")
 
         if self.get_run_index() == 0:  ##TODO ADD or (optimizer kwargs has changed from last run)
-            print("Compiling the model.")
+            self.logger.info("Compiling the model.")
             self.model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=[])
 
         model_save_name = self.get_run_index_prefixed_path('trained.model')
@@ -244,8 +250,8 @@ class Run(object):
         validation_steps_per_epoch = int(
             fraction_validation_data_each_epoch * validation_note_sample_generator.get_total_batches_count())
 
-        print("Training steps per epoch: " + str(training_steps_per_epoch))
-        print("Validation steps per epoch: " + str(validation_steps_per_epoch), '\n')
+        self.logger.info("Training steps per epoch: " + str(training_steps_per_epoch))
+        self.logger.info("Validation steps per epoch: " + str(validation_steps_per_epoch), '\n')
 
         checkpoint_callback = ModelCheckpoint(model_save_name,
                                               monitor='loss',
