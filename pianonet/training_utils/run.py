@@ -3,9 +3,9 @@ import pickle
 import subprocess
 import logging
 
-from keras.callbacks import ModelCheckpoint
-from keras.models import load_model
-from keras.optimizers import Adam
+from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.models import load_model
+from tensorflow.keras.optimizers import Adam
 
 from pianonet.core.misc_tools import save_dictionary_to_json_file, load_dictionary_from_json_file
 from pianonet.model_building.get_model_input_shape import get_model_input_shape

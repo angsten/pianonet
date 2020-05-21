@@ -5,7 +5,7 @@ import time
 from collections import deque
 
 import numpy as np
-from keras import backend as K
+from tensorflow.keras import backend as K
 
 from pianonet.model_building.get_model_input_shape import get_model_input_shape
 
