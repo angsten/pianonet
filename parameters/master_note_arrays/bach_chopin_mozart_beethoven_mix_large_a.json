@@ -1,11 +1,11 @@
 {
-  "file_name_prefix": "bach_and_mozart_medium_a",
+  "file_name_prefix": "bach_chopin_mozart_beethoven_mix_large_a.json",
   "min_key_index": 34,
   "num_keys": 64,
   "resolution": 1.0,
   "end_padding_range_in_seconds": [
-    4.17,
-    4.17
+    4.0,
+    6.0
   ],
   "num_augmentations_per_midi_file": 10,
   "stretch_range": [
@@ -16,9 +16,11 @@
   "midi_locator": {
     "paths_to_directories_of_midi_files": [
       "/Users/angsten/PycharmProjects/pianonet/data/sources/j_s_bach/kept/",
-      "/Users/angsten/PycharmProjects/pianonet/data/sources/w_a_mozart/kept/"
+      "/Users/angsten/PycharmProjects/pianonet/data/sources/w_a_mozart/kept/",
+      "/Users/angsten/PycharmProjects/pianonet/data/sources/l_v_beethoven/kept/",
+      "/Users/angsten/PycharmProjects/pianonet/data/sources/f_f_chopin/kept/"
     ],
     "whitelisted_midi_file_names": []
   },
-  "validation_fraction": 0.1
+  "validation_fraction": 0.05
 }
