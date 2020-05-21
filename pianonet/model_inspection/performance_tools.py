@@ -33,13 +33,13 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
 
     input_placeholder = model.input
     output_placeholders = [layer.output for layer in model.layers]
-    functor = K.function([input_placeholder, K.learning_phase()], output_placeholders)
+    functor = K.function([input_placeholder], output_placeholders)
 
     input_data = seed_note_array.get_values_in_range(start_index=-num_notes_in_model_input,
                                                      end_index=None,
                                                      use_zero_padding_for_out_of_bounds=False)  # SEE IF CAN BE TRUE
 
-    layer_outputs = functor([np.array([input_data.reshape(-1, 1)]), 1])
+    layer_outputs = functor([np.array([input_data.reshape(-1, 1)])])
 
     def get_initial_state_at(layer_index, num_states):
         """
@@ -51,9 +51,11 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
 
     print("Initializing state queues.")
 
+    num_model_layers = len(model.layers)
+
     initial_state_queues = []
 
-    for i in range(0, len(model.layers) - 2):
+    for i in range(0, num_model_layers - 2):
         layer = model.layers[i]
 
         if (layer.name.find('conv1d') != -1) and (i > 1):
@@ -74,10 +76,12 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
     b_at_one = np.transpose([model.get_layer(index=1).get_weights()[1]])
 
     saved_weight_entries = []
-    for i in range(0, len(model.layers) - 2):
+    dilation_rates = []
+    for i in range(0, num_model_layers - 2):
         node = model.layers[i]
-
+        dilation_rates.append(0)
         if node.name.find('conv1d') != -1:
+            dilation_rates[-1] = node.dilation_rate[0]
             weights = node.get_weights()
             w = weights[0]
             b = np.transpose([weights[1]])
@@ -94,6 +98,8 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
         else:
             saved_weight_entries.append({})
 
+    dilation_rates.append(model.layers[-2].dilation_rate[0])
+
     def get_output_tensor_at_node(input_position, layer_index):
         """
         Recursively called function for building output states. Each node in the model is defined by an x coordinate,
@@ -103,8 +109,9 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
         def sigmoid(x):
             return 1.0 / (1.0 + math.exp(-x))
 
-        node = model.get_layer(index=layer_index)
-        dilation_rate = node.dilation_rate[0]
+        # node = model.get_layer(index=layer_index)
+        # dilation_rate = node.dilation_rate[0]
+        dilation_rate = dilation_rates[layer_index]
 
         if layer_index == 1:
             w = w_at_one
@@ -118,7 +125,7 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
 
             return result
 
-        elif layer_index == (len(model.layers) - 2):  # last conv_1d with sigmoid
+        elif layer_index == (num_model_layers - 2):  # last conv_1d with sigmoid
             final_layer = model.layers[layer_index]
             final_weights = final_layer.get_weights()
             w = final_weights[0][0]
@@ -167,10 +174,10 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
 
         for key in range(0, num_keys):
 
-            res_opt = get_output_tensor_at_node(input_position=input_end_index, layer_index=(len(model.layers) - 2))
+            res_opt = get_output_tensor_at_node(input_position=input_end_index, layer_index=(num_model_layers - 2))
 
             if random.uniform(0.0, 1.0) < validation_fraction:
-                res_model = model.predict([[np.array(raw_input).reshape(-1, 1)]])[0][-1]
+                res_model = model.predict([[np.array(raw_input).reshape(1, -1)]])[0][-1]
 
                 optimized_inconsistency_magnitude = abs(res_model - res_opt)
                 if optimized_inconsistency_magnitude > 1e-6:
