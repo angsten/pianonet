@@ -2,7 +2,7 @@ import os
 import pickle
 import subprocess
 
-from tensorflow.keras.callbacks import ModelCheckpoint
+import tensorflow as tf
 from tensorflow.keras.models import load_model
 from tensorflow.keras.optimizers import Adam
 
@@ -27,7 +27,9 @@ class Run(Logger):
         """
 
         self.path = os.path.abspath(path)
-        super().__init__(logger_name=__name__, log_file_path=self.get_full_path_from_run_file_name('output.log'))
+        super().__init__(logger_name=__name__,
+                         log_file_path=self.get_full_path_from_run_file_name('output.log'),
+                         tf_logger=tf.get_logger())
 
         for i in range(0, 3): self.log()
         self.log("*-" * 60)
@@ -168,7 +170,7 @@ class Run(Logger):
             file_path=data_description['validation_master_note_array_path'])
 
     def checkpoint_method_creator(self, training_note_sample_generator):
-        def checkpoint_method():
+        def checkpoint_method(batch=None, logs=None):
             self.save_state()
             self.model.save(self.get_run_index_prefixed_path('trained.model'))
 
@@ -176,6 +178,18 @@ class Run(Logger):
             training_note_sample_generator.save_state(generator_checkpoint_path)
 
         return checkpoint_method
+
+    def loss_logging_method_creator(self, training_note_sample_generator, steps_per_epoch):
+        def logging_method(batch=None, logs=None):
+            if logs != {}:
+                batch_string = str(batch) + '/' + str(steps_per_epoch)
+                percent_data_string = str(round(training_note_sample_generator.get_fraction_data_seen() * 100, 4)) + '%'
+                loss_string = str(round(logs.get('loss'), 7))
+                log_string = batch_string + ' ' + percent_data_string + ' ' + loss_string
+
+                self.logger.info(log_string)
+
+        return logging_method
 
     def execute(self, run_description):
         """
@@ -226,7 +240,7 @@ class Run(Logger):
             generator_checkpoint_path = self.get_previous_run_index_prefixed_path('generator_state.gs')
             training_note_sample_generator.load_state(file_path=generator_checkpoint_path)
 
-        self.log('\n' + training_note_sample_generator.get_summary_string())
+        self.log('\n' * 2 + training_note_sample_generator.get_summary_string() + '\n')
 
         optimizer_description = training_description['optimizer_description']
 
@@ -250,20 +264,21 @@ class Run(Logger):
         validation_steps_per_epoch = int(
             fraction_validation_data_each_epoch * validation_note_sample_generator.get_total_batches_count())
 
+        self.log("Beginning training.")
         self.log("Training steps per epoch: " + str(training_steps_per_epoch))
         self.log("Validation steps per epoch: " + str(validation_steps_per_epoch))
-
-        checkpoint_callback = ModelCheckpoint(model_save_name,
-                                              monitor='loss',
-                                              verbose=0,
-                                              save_best_only=False,
-                                              save_weights_only=False,
-                                              mode='auto',
-                                              save_freq=1)
 
         save_state_callback = ExecuteEveryNBatchesCallback(
             run_frequency_in_batches=training_description['checkpoint_frequency_in_steps'],
             method_to_run=self.checkpoint_method_creator(training_note_sample_generator=training_note_sample_generator)
+        )
+
+        logging_callback = ExecuteEveryNBatchesCallback(
+            run_frequency_in_batches=1,
+            method_to_run=self.loss_logging_method_creator(
+                training_note_sample_generator,
+                steps_per_epoch=training_steps_per_epoch
+            )
         )
 
         self.model.fit(
@@ -273,5 +288,5 @@ class Run(Logger):
             steps_per_epoch=training_steps_per_epoch,
             validation_data=validation_note_sample_generator,
             validation_steps=validation_steps_per_epoch,
-            callbacks=[checkpoint_callback, save_state_callback]
+            callbacks=[save_state_callback, logging_callback]
         )
