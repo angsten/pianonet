@@ -1,7 +1,6 @@
 import os
 import pickle
 import subprocess
-import logging
 
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.models import load_model
@@ -10,11 +9,12 @@ from tensorflow.keras.optimizers import Adam
 from pianonet.core.misc_tools import save_dictionary_to_json_file, load_dictionary_from_json_file
 from pianonet.model_building.get_model_input_shape import get_model_input_shape
 from pianonet.training_utils.custom_keras_callbacks import ExecuteEveryNBatchesCallback
+from pianonet.training_utils.logger import Logger
 from pianonet.training_utils.master_note_array import MasterNoteArray
 from pianonet.training_utils.note_sample_generator import NoteSampleGenerator
 
 
-class Run(object):
+class Run(Logger):
     """
     Wrapper for a single model training run with set parameters denoted by a dictionary saved to file. Every
     run sits in its own directory, which at minimum must contain a run_description.json file describing
@@ -26,36 +26,38 @@ class Run(object):
         path: Directory in which the run is executed.
         """
 
-        self.logger = logging.getLogger(__name__)
-        f_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        f_handler = logging.FileHandler(self.get_full_path_from_run_file_name('output.txt'))
-        f_handler.setFormatter(f_format)
-        self.logger.addHandler(f_handler)
+        self.path = os.path.abspath(path)
+        super().__init__(logger_name=__name__, log_file_path=self.get_full_path_from_run_file_name('output.log'))
 
-        self.path = path
-
-        self.logger.info("Beginning run at " + path)
+        for i in range(0, 3): self.log()
+        self.log("*-" * 60)
+        self.log("*-" * 60)
+        self.log("*-*-*-* BEGINNING RUN AT " + self.path)
+        self.log("*-" * 60)
+        self.log("*-" * 60)
+        for i in range(0, 3): self.log()
 
         run_description = load_dictionary_from_json_file(json_file_path=self.get_run_description_path())
 
         if os.path.exists(self.get_state_path()):
-            self.logger.info("Saved state found. Restarting the run and incrementing the run index.")
+            self.log("Saved state found. Restarting the run and incrementing the run index.")
             self.load_state()
             self.state['run_index'] += 1
 
             previous_model_path = self.get_previous_run_index_prefixed_path('trained.model')
-            self.logger.info("Using previous model at " + previous_model_path)
+            self.log("Using previous model at " + previous_model_path)
             run_description['model_description']['model_path'] = previous_model_path
             del run_description['model_description']['model_initializer']
 
         else:
-            self.logger.info("No previously saved state found. Starting as a new run.")
+            self.log("No previously saved state found. Starting as a new run.")
             self.state = {
                 'run_index': 0,
                 'status': 'running',
             }
 
-        self.logger.info("State of run before execution is:", str(self.state))
+        self.log("State of run before execution is: ")
+        self.log(self.state)
 
         self.execute(run_description)
 
@@ -112,11 +114,11 @@ class Run(object):
         )
 
     def fetch_model(self, model_description):
-        self.logger.info('\n')
+        self.log()
         if (model_description['model_path'] == "") and ('model_initializer' in model_description):
             model_initializer = model_description['model_initializer']
-            self.logger.info("Initializing model using file at " + model_initializer['path'])
-            self.logger.info("Params used for model initialization are " + str(model_initializer['params']))
+            self.log("Initializing model using file at " + model_initializer['path'])
+            self.log("Params used for model initialization are " + str(model_initializer['params']))
 
             model_output_path = self.get_run_index_prefixed_path("initial.model")
             model_parameters_file_path = self.get_full_path_from_run_file_name('model_parameters')
@@ -126,8 +128,8 @@ class Run(object):
 
             model_creation_command = "python " + model_initializer[
                 'path'] + " " + model_parameters_file_path + " " + model_output_path
-            self.logger.info("\nCalling model creator with command:")
-            self.logger.info(model_creation_command)
+            self.log("\nCalling model creator with command:")
+            self.log(model_creation_command)
 
             subprocess.run(model_creation_command, shell=True, check=True)
 
@@ -136,25 +138,34 @@ class Run(object):
             self.model = load_model(model_output_path)
 
         elif model_description['model_path'] != "":
-            self.logger.info("Loading model at " + model_description['model_path'])
+            self.log("Loading model at " + model_description['model_path'])
 
             self.model = load_model(model_description['model_path'])
         else:
             raise Exception("No method of creating or loading the model has been specified in the run description.")
 
-        self.logger.info("\nModel has been set. Model summary:")
+        self.log()
 
         num_notes_in_model_input = get_model_input_shape(self.model)
-
         time_steps_receptive_field = num_notes_in_model_input / self.note_array_transformer.num_keys
 
-        self.logger.info("- " * 40)
-        self.logger.info("Number of notes in model input: " + str(num_notes_in_model_input))
-        self.logger.info("Time steps in receptive field: " + str(time_steps_receptive_field))
-        self.logger.info("Seconds in receptive field: " + str(round((time_steps_receptive_field) / 48, 2)))
-        self.logger.info('\n')
-        self.model.summary(print_fn=logger.info)
-        self.logger.info("- " * 40)
+        self.log("Number of notes in model input: " + str(num_notes_in_model_input))
+        self.log("Time steps in receptive field: " + str(time_steps_receptive_field))
+        self.log("Seconds in receptive field: " + str(round((time_steps_receptive_field) / 48, 2)))
+        self.log()
+        self.model.summary(print_fn=self.log)
+        self.log()
+
+    def fetch_data(self, data_description):
+        self.log()
+        self.log("Loading training master note array from " + data_description['training_master_note_array_path'])
+        self.training_master_note_array = MasterNoteArray(file_path=data_description['training_master_note_array_path'])
+        self.note_array_transformer = self.training_master_note_array.note_array_transformer
+        self.num_keys = self.note_array_transformer.num_keys
+
+        self.log("Loading validation master note array from " + data_description['validation_master_note_array_path'])
+        self.validation_master_note_array = MasterNoteArray(
+            file_path=data_description['validation_master_note_array_path'])
 
     def checkpoint_method_creator(self, training_note_sample_generator):
         def checkpoint_method():
@@ -166,18 +177,6 @@ class Run(object):
 
         return checkpoint_method
 
-    def fetch_data(self, data_description):
-        self.logger.info('\n')
-        training_master_note_array_path = data_description['training_master_note_array_path']
-        self.logger.info("Loading training master note array from " + training_master_note_array_path)
-        self.training_master_note_array = MasterNoteArray(file_path=training_master_note_array_path)
-        self.note_array_transformer = self.training_master_note_array.note_array_transformer
-        self.num_keys = self.note_array_transformer.num_keys
-
-        self.validation_master_note_array_path = data_description['validation_master_note_array_path']
-        self.logger.info("Loading validation master note array from " + self.validation_master_note_array_path)
-        validation_master_note_array = MasterNoteArray(file_path=self.alidation_master_note_array_path)
-
     def execute(self, run_description):
         """
         Begins a model training session following the specifications in the provided run_description.
@@ -185,8 +184,9 @@ class Run(object):
         run_description: Dictionary specifying how the model training session should be carried out.
         """
 
-        self.logger.info("\nExecuting run description:")
-        self.logger.info(run_description)
+        self.log()
+        self.log("Executing run description:")
+        self.log(run_description)
 
         save_dictionary_to_json_file(
             dictionary=run_description,
@@ -226,7 +226,7 @@ class Run(object):
             generator_checkpoint_path = self.get_previous_run_index_prefixed_path('generator_state.gs')
             training_note_sample_generator.load_state(file_path=generator_checkpoint_path)
 
-        self.logger.info('\n', training_note_sample_generator.get_summary_string(), '\n')
+        self.log('\n' + training_note_sample_generator.get_summary_string())
 
         optimizer_description = training_description['optimizer_description']
 
@@ -236,7 +236,7 @@ class Run(object):
             raise Exception("Optimizer type " + optimizer_description['type'] + " not yet supported.")
 
         if self.get_run_index() == 0:  ##TODO ADD or (optimizer kwargs has changed from last run)
-            self.logger.info("Compiling the model.")
+            self.log("Compiling the model.")
             self.model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=[])
 
         model_save_name = self.get_run_index_prefixed_path('trained.model')
@@ -250,8 +250,8 @@ class Run(object):
         validation_steps_per_epoch = int(
             fraction_validation_data_each_epoch * validation_note_sample_generator.get_total_batches_count())
 
-        self.logger.info("Training steps per epoch: " + str(training_steps_per_epoch))
-        self.logger.info("Validation steps per epoch: " + str(validation_steps_per_epoch), '\n')
+        self.log("Training steps per epoch: " + str(training_steps_per_epoch))
+        self.log("Validation steps per epoch: " + str(validation_steps_per_epoch))
 
         checkpoint_callback = ModelCheckpoint(model_save_name,
                                               monitor='loss',
@@ -259,15 +259,15 @@ class Run(object):
                                               save_best_only=False,
                                               save_weights_only=False,
                                               mode='auto',
-                                              period=1)
+                                              save_freq=1)
 
         save_state_callback = ExecuteEveryNBatchesCallback(
             run_frequency_in_batches=training_description['checkpoint_frequency_in_steps'],
             method_to_run=self.checkpoint_method_creator(training_note_sample_generator=training_note_sample_generator)
         )
 
-        self.model.fit_generator(
-            generator=training_note_sample_generator,
+        self.model.fit(
+            x=training_note_sample_generator,
             epochs=epochs,
             verbose=1,
             steps_per_epoch=training_steps_per_epoch,
