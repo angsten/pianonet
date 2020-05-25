@@ -189,7 +189,7 @@ class Run(Logger):
         def logging_method(batch=None, logs=None):
             if logs != {}:
                 batch_string = str(batch) + '/' + str(steps_per_epoch)
-                percent_data_string = str(round(training_note_sample_generator.get_fraction_data_seen() * 100, 4)) + '%'
+                percent_data_string = str(round(training_note_sample_generator.get_fraction_data_seen() * 100, 3)) + '%'
                 loss_string = str(round(logs.get('loss'), 7))
                 log_string = batch_string + ' ' + percent_data_string + ' ' + loss_string
 
@@ -197,25 +197,29 @@ class Run(Logger):
 
         return logging_method
 
-    def epoch_logging_method_creator(self):
+    def epoch_logging_method_creator(self, training_note_sample_generator):
         def epoch_logging_method(epoch=None, logs=None):
+            percent_data_string = str(round(training_note_sample_generator.get_fraction_data_seen() * 100, 3)) + '%'
             cpu_time_taken_string = str(round(time.clock() - logs['start_cpu_time'], 1))
             wall_time_taken_string = str(round(time.time() - logs['start_wall_time'], 1))
             loss_string = str(round(logs.get('loss'), 7))
             val_loss_string = str(round(logs.get('val_loss', 0.0), 7))
 
-            log_string = "Epoch {epoch} completed in {wall_time_taken_string} seconds ({cpu_time_taken_string} cpu-seconds) - loss: {loss_string}  val_loss: {val_loss_string}"
+            self.log()
+            log_string = "Epoch {epoch} completed in {wall_time_taken_string} seconds ({cpu_time_taken_string} cpu-seconds) with {percent_data_string} data coverage - loss: {loss_string}  val_loss: {val_loss_string}"
 
             self.log(
                 log_string.format(
                     epoch=epoch,
                     wall_time_taken_string=wall_time_taken_string,
                     cpu_time_taken_string=cpu_time_taken_string,
+                    percent_data_string=percent_data_string,
                     loss_string=loss_string,
-                    val_loss_string=val_loss_string
+                    val_loss_string=val_loss_string,
                 )
             )
 
+            self.log()
             self.log()
 
         return epoch_logging_method
@@ -295,13 +299,13 @@ class Run(Logger):
 
         self.log()
         self.log("Beginning training.")
-        self.log("Training steps per epoch: " + str(training_steps_per_epoch))
-        self.log("Validation steps per epoch: " + str(validation_steps_per_epoch))
+        self.log("    Training steps per epoch: " + str(training_steps_per_epoch))
+        self.log("    Validation steps per epoch: " + str(validation_steps_per_epoch))
         self.log()
 
         save_state_callback = ExecuteEveryNBatchesAndEpochCallback(
             run_frequency_in_batches=training_description['checkpoint_frequency_in_steps'],
-            method_to_run=self.checkpoint_method_creator(training_note_sample_generator=training_note_sample_generator),
+            method_to_run=self.checkpoint_method_creator(training_note_sample_generator),
             method_to_run_on_epoch_end=None,
         )
 
@@ -311,7 +315,7 @@ class Run(Logger):
                 training_note_sample_generator,
                 steps_per_epoch=training_steps_per_epoch
             ),
-            method_to_run_on_epoch_end=self.epoch_logging_method_creator(),
+            method_to_run_on_epoch_end=self.epoch_logging_method_creator(training_note_sample_generator),
         )
 
         self.model.fit(
