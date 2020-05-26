@@ -44,7 +44,7 @@ class Run(Logger):
         self.log("*-*-*-* BEGINNING RUN AT " + self.path)
         self.log("*-" * 60)
         self.log("*-" * 60)
-        for i in range(0, 3): self.log()
+        for i in range(0, 2): self.log()
 
         initial_run_description_path = os.path.join(self.path, 'run_description.json')
         self.run_description = load_dictionary_from_json_file(json_file_path=initial_run_description_path)
@@ -66,8 +66,8 @@ class Run(Logger):
             del self.run_description['model_description']['model_initializer']
 
             previous_optimizer_path = self.get_optimizer_path(run_index=self.get_run_index() - 1)
-            self.run_description['model_description']['optimizer_state_path'] = previous_optimizer_path
-
+            self.run_description['training_description']['optimizer_description'][
+                'optimizer_state_path'] = previous_optimizer_path
         else:
             self.log("No previously saved state found. Starting as a new run.")
             self.state = {
@@ -81,8 +81,8 @@ class Run(Logger):
         self.log("Executing run description:")
         self.log(self.run_description)
 
-        self.fetch_model()
         self.fetch_data()
+        self.fetch_model()
         self.fetch_data_generators()
         self.train()
 
@@ -108,7 +108,7 @@ class Run(Logger):
 
     def load_state(self):
         """
-        Loads the state from the state file into this run's state.
+        Loads a run's state from the state file and loads into this run's state.
         """
 
         self.state = load_dictionary_from_json_file(json_file_path=self.get_state_path())
@@ -124,17 +124,22 @@ class Run(Logger):
 
     def get_generator_state_path(self, run_index):
         return os.path.join(self.path, 'generator_states', str(run_index) + '_generator_state.gs')
+    def fetch_data(self):
+        """
+        Based on the run_description, locate and load the training and validation data sets.
+        """
 
-    def get_index_prepended_file_base_name(self, index, file_base_name):
-        return str(index) + "_" + file_base_name
+        data_description = self.run_description['data_description']
 
-    def get_previous_run_index_prefixed_path(self, file_base_name):
-        return self.get_full_run_path(
-            self.get_index_prepended_file_base_name(
-                index=self.get_run_index() - 1,
-                file_base_name=file_base_name,
-            )
-        )
+        self.log()
+        self.log("Loading training master note array from " + data_description['training_master_note_array_path'])
+        self.training_master_note_array = MasterNoteArray(file_path=data_description['training_master_note_array_path'])
+        self.note_array_transformer = self.training_master_note_array.note_array_transformer
+        self.num_keys = self.note_array_transformer.num_keys
+
+        self.log("Loading validation master note array from " + data_description['validation_master_note_array_path'])
+        self.validation_master_note_array = MasterNoteArray(
+            file_path=data_description['validation_master_note_array_path'])
 
     def fetch_model(self):
         """
@@ -149,13 +154,6 @@ class Run(Logger):
             self.log("Loading model at " + model_description['model_path'])
 
             self.model = load_model(model_description['model_path'])
-
-            if 'optimizer_state_path' in model_description:
-                saved_optimizer_path = model_description['optimizer_state_path']
-                self.log("Loading saved optimizer state into model.optimizer from " + saved_optimizer_path)
-
-                with open(saved_optimizer_path, 'rb') as optimizer_file:
-                    self.model.optimizer = pickle.load(optimizer_file)
 
         elif 'model_initializer' in model_description:
             model_initializer = model_description['model_initializer']
@@ -184,19 +182,6 @@ class Run(Logger):
             raise Exception("No method of creating or loading the model has been specified in the run description.")
 
         print_model_specifications(model=self.model, num_keys=self.num_keys, print_function=self.log)
-
-    def fetch_data(self):
-        data_description = self.run_description['data_description']
-
-        self.log()
-        self.log("Loading training master note array from " + data_description['training_master_note_array_path'])
-        self.training_master_note_array = MasterNoteArray(file_path=data_description['training_master_note_array_path'])
-        self.note_array_transformer = self.training_master_note_array.note_array_transformer
-        self.num_keys = self.note_array_transformer.num_keys
-
-        self.log("Loading validation master note array from " + data_description['validation_master_note_array_path'])
-        self.validation_master_note_array = MasterNoteArray(
-            file_path=data_description['validation_master_note_array_path'])
 
     def fetch_data_generators(self):
         """
@@ -233,7 +218,7 @@ class Run(Logger):
         )
 
         if self.get_run_index() != 0:
-            previous_generator_state_path = self.get_generator_state_path(run_index=self.get_run_index()-1)
+            previous_generator_state_path = self.get_generator_state_path(run_index=self.get_run_index() - 1)
             self.log("Loading previous training generator state from path " + previous_generator_state_path)
             self.training_note_sample_generator.load_state(file_path=previous_generator_state_path)
 
@@ -259,25 +244,31 @@ class Run(Logger):
         generator_checkpoint_path = self.get_generator_state_path(run_index=self.get_run_index())
         self.training_note_sample_generator.save_state(generator_checkpoint_path)
 
-    def checkpoint(self, batch=None, logs=None):
+    def checkpoint_method_creator(self):
         """
         Saves all relevant parts of the current run's training session and state to files within the run directory
         as an exact checkpoint from which a future run can be restarted without any change in the training outcome.
-
-        batch: Dummy variable to allow use as a keras callback
-        logs: Dummy variable to allow use as a keras callback
         """
 
-        save_dictionary_to_json_file(
-            dictionary=self.run_description,
-            json_file_path=self.get_run_description_path(run_index=self.get_run_index())
-        )
+        def checkpoint(batch=None, logs=None):
+            save_dictionary_to_json_file(
+                dictionary=self.run_description,
+                json_file_path=self.get_run_description_path(run_index=self.get_run_index())
+            )
 
-        self.save_state()
-        self.save_model()
-        self.save_generator_state()
+            self.save_state()
+            self.save_model()
+            self.save_generator_state()
+
+        return checkpoint
 
     def loss_logging_method_creator(self, steps_per_epoch):
+        """
+        Generates a callback function for logging the loss as training progresses.
+
+        steps_per_epoch: Integer specifying how many steps are in each training epoch.
+        """
+
         def logging_method(batch=None, logs=None):
             if logs != {}:
                 batch_string = str(batch) + '/' + str(steps_per_epoch)
@@ -291,6 +282,10 @@ class Run(Logger):
         return logging_method
 
     def epoch_logging_method_creator(self):
+        """
+        Generates a callback function for summarizing a training epoch's statistics.
+        """
+
         def epoch_logging_method(epoch=None, logs=None):
             percent_data_string = str(
                 round(self.training_note_sample_generator.get_fraction_data_seen() * 100, 3)) + '%'
@@ -324,15 +319,24 @@ class Run(Logger):
         """
 
         training_description = self.run_description['training_description']
+        validation_description = self.run_description['validation_description']
         optimizer_description = training_description['optimizer_description']
 
-        if optimizer_description['type'] == 'Adam':
-            optimizer = Adam(**optimizer_description['kwargs'])
-        else:
-            raise Exception("Optimizer type " + optimizer_description['type'] + " not yet supported.")
+        ##TODO ADD: or (optimizer kwargs has changed from last run)
+        if 'optimizer_state_path' in optimizer_description:
+            saved_optimizer_path = optimizer_description['optimizer_state_path']
+            self.log("Loading saved optimizer state into model.optimizer from " + saved_optimizer_path)
 
-        if self.get_run_index() == 0:  ##TODO ADD or (optimizer kwargs has changed from last run)
-            self.log("Because run index is zero, **COMPILING THE MODEL FRESHLY**  ")
+            with open(saved_optimizer_path, 'rb') as optimizer_file:
+                self.model.optimizer = pickle.load(optimizer_file)
+
+        elif self.get_run_index() == 0:
+            if optimizer_description['type'] == 'Adam':
+                optimizer = Adam(**optimizer_description['kwargs'])
+            else:
+                raise Exception("Optimizer type " + optimizer_description['type'] + " not yet supported.")
+
+            self.log("Because run index is zero, compiling the model optimizer.")
             self.model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=[])
 
         fraction_training_data_each_epoch = training_description['fraction_data_each_epoch']
@@ -352,17 +356,16 @@ class Run(Logger):
 
         save_state_callback = ExecuteEveryNBatchesAndEpochCallback(
             run_frequency_in_batches=training_description['checkpoint_frequency_in_steps'],
-            method_to_run=self.checkpoint,
+            method_to_run=self.checkpoint_method_creator(),
             method_to_run_on_epoch_end=None,
         )
 
         logging_callback = ExecuteEveryNBatchesAndEpochCallback(
             run_frequency_in_batches=1,
             method_to_run=self.loss_logging_method_creator(
-                self.training_note_sample_generator,
                 steps_per_epoch=training_steps_per_epoch
             ),
-            method_to_run_on_epoch_end=self.epoch_logging_method_creator(self.training_note_sample_generator),
+            method_to_run_on_epoch_end=self.epoch_logging_method_creator(),
         )
 
         self.model.fit(
