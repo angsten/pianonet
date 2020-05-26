@@ -4,7 +4,7 @@ import pprint
 
 class Logger(object):
     """
-    Parent class that makes logging the output of derived classes much more convenient.
+    Parent class that makes logging the output of derived classes more convenient.
     """
 
     def __init__(self, logger_name, log_file_path, tf_logger=None):
