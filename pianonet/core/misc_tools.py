@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 
 import numpy as np
 
@@ -46,3 +47,17 @@ def load_dictionary_from_json_file(json_file_path):
 
     with open(json_file_path, 'r') as json_file:
         return json.load(json_file)
+
+def create_directories(parent_directory_path, directory_names_list):
+    """
+    Creates the directories within parent_directory_path with the names directory_names_list. If any of the paths
+    exists, nothing is done.
+
+    parent_directory_path: Where to put the directories listed in directory_names_list
+    directory_names_list: List of strings denoting which paths to create
+    """
+
+    for directory_name in directory_names_list:
+        full_directory_path = os.path.join(parent_directory_path, directory_name)
+        if not os.path.exists(full_directory_path):
+            os.mkdir(full_directory_path)
