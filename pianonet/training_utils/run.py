@@ -41,7 +41,7 @@ class Run(Logger):
         for i in range(0, 3): self.log()
         self.log("*-" * 60)
         self.log("*-" * 60)
-        self.log("*-*-*-* BEGINNING RUN AT " + self.path)
+        self.log("*-*-*-*-* BEGINNING RUN AT " + self.path + " *-*-*-*")
         self.log("*-" * 60)
         self.log("*-" * 60)
         for i in range(0, 2): self.log()
