@@ -24,7 +24,7 @@ class ExecuteEveryNBatchesAndEpochCallback(Callback):
         self.method_to_run = method_to_run
         self.method_to_run_on_epoch_end = method_to_run_on_epoch_end
 
-    def on_batch_end(self, batch, logs={}):
+    def on_train_batch_end(self, batch, logs={}):
         """
         Method called at the end of each batch.
 
