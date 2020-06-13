@@ -21,8 +21,8 @@ class Run(Logger):
     Wrapper for a model training session with set parameters denoted by a dictionary, run_description.json. Every
     run is contained its own directory, self.path, which at minimum must contain a run_description.json file describing
     where to find the data, how to generate or find the initial model, and how to train the model. The run class
-    smoothly handles re-running the training session from a checkpointed state, including saving the optimizer
-    and data generator states.
+    smoothly handles re-running the training session from a checkpointed state, including saving the data generator
+    state.
     """
 
     def __init__(self, path):
@@ -41,7 +41,7 @@ class Run(Logger):
         for i in range(0, 3): self.log()
         self.log("*-" * 60)
         self.log("*-" * 60)
-        self.log("*-*-*-*-* BEGINNING RUN AT " + self.path + " *-*-*-*")
+        self.log("*-*-*-*-* BEGINNING RUN AT " + self.path + " *-*-*-*-*")
         self.log("*-" * 60)
         self.log("*-" * 60)
         for i in range(0, 2): self.log()
@@ -65,9 +65,6 @@ class Run(Logger):
             self.run_description['model_description']['model_path'] = previous_model_path
             del self.run_description['model_description']['model_initializer']
 
-            previous_optimizer_path = self.get_optimizer_path(run_index=self.get_run_index() - 1)
-            self.run_description['training_description']['optimizer_description'][
-                'optimizer_state_path'] = previous_optimizer_path
         else:
             self.log("No previously saved state found. Starting as a new run.")
             self.state = {
@@ -116,14 +113,12 @@ class Run(Logger):
     def get_model_path(self, run_index):
         return os.path.join(self.path, 'models', str(run_index) + '_trained_model')
 
-    def get_optimizer_path(self, run_index):
-        return os.path.join(self.path, 'models', str(run_index) + '_optimizer.pkl')
-
     def get_run_description_path(self, run_index):
         return os.path.join(self.path, 'run_descriptions', str(run_index) + '_run_description.json')
 
     def get_generator_state_path(self, run_index):
         return os.path.join(self.path, 'generator_states', str(run_index) + '_generator_state.gs')
+
     def fetch_data(self):
         """
         Based on the run_description, locate and load the training and validation data sets.
@@ -226,15 +221,10 @@ class Run(Logger):
 
     def save_model(self):
         """
-        Saves the current model to file prepended with the current run index. The corresponding optimizer state is
-        also saved in the path/models folder with the same prepended index.
+        Saves the current model to file prepended with the current run index.
         """
 
         self.model.save(self.get_model_path(run_index=self.get_run_index()))
-
-        saved_optimizer_path = self.get_optimizer_path(run_index=self.get_run_index())
-        with open(saved_optimizer_path, 'wb') as optimizer_file:
-            pickle.dump(self.model.optimizer, optimizer_file)
 
     def save_generator_state(self):
         """
@@ -323,14 +313,7 @@ class Run(Logger):
         optimizer_description = training_description['optimizer_description']
 
         ##TODO ADD: or (optimizer kwargs has changed from last run)
-        if 'optimizer_state_path' in optimizer_description:
-            saved_optimizer_path = optimizer_description['optimizer_state_path']
-            self.log("Loading saved optimizer state into model.optimizer from " + saved_optimizer_path)
-
-            with open(saved_optimizer_path, 'rb') as optimizer_file:
-                self.model.optimizer = pickle.load(optimizer_file)
-
-        elif self.get_run_index() == 0:
+        if self.get_run_index() == 0:
             if optimizer_description['type'] == 'Adam':
                 optimizer = Adam(**optimizer_description['kwargs'])
             else:
