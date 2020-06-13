@@ -25,23 +25,25 @@ class Run(Logger):
     state.
     """
 
-    def __init__(self, path):
+    def __init__(self, path, mode):
         """
         path: Directory in which the run is executed and containing, at minimum, a file called run_description.json
+        mode: Whether to run in 'train' mode for training or 'evaluate' mode for evaluating on the validation set.
         """
 
         self.path = os.path.abspath(path)
+        self.mode = mode
 
         super().__init__(
             logger_name=__name__,
-            log_file_path=self.get_full_run_path(file_name='output.log'),
+            log_file_path=self.get_full_run_path(file_name='output_{mode}.log'.format(mode=self.mode)),
             tf_logger=tf.get_logger()
         )
 
         for i in range(0, 3): self.log()
         self.log("*-" * 60)
         self.log("*-" * 60)
-        self.log("*-*-*-*-* BEGINNING RUN AT " + self.path + " *-*-*-*-*")
+        self.log("*-*-*-*-* BEGINNING RUN AT " + self.path)
         self.log("*-" * 60)
         self.log("*-" * 60)
         for i in range(0, 2): self.log()
@@ -63,7 +65,6 @@ class Run(Logger):
 
             self.log("Using previous model at " + previous_model_path)
             self.run_description['model_description']['model_path'] = previous_model_path
-            del self.run_description['model_description']['model_initializer']
 
         else:
             self.log("No previously saved state found. Starting as a new run.")
@@ -126,15 +127,18 @@ class Run(Logger):
 
         data_description = self.run_description['data_description']
 
-        self.log()
-        self.log("Loading training master note array from " + data_description['training_master_note_array_path'])
-        self.training_master_note_array = MasterNoteArray(file_path=data_description['training_master_note_array_path'])
-        self.note_array_transformer = self.training_master_note_array.note_array_transformer
-        self.num_keys = self.note_array_transformer.num_keys
+        if self.mode == 'train':
+            self.log()
+            self.log("Loading training master note array from " + data_description['training_master_note_array_path'])
+            self.training_master_note_array = MasterNoteArray(
+                file_path=data_description['training_master_note_array_path'])
 
         self.log("Loading validation master note array from " + data_description['validation_master_note_array_path'])
         self.validation_master_note_array = MasterNoteArray(
             file_path=data_description['validation_master_note_array_path'])
+
+        self.note_array_transformer = self.validation_master_note_array.note_array_transformer
+        self.num_keys = self.note_array_transformer.num_keys
 
     def fetch_model(self):
         """
@@ -183,21 +187,30 @@ class Run(Logger):
         Using self.run_description specifications, load in either a new training data generators or previously
         saved training data generators. Also load the validation data generator (never loaded from file).
         """
-
-        training_description = self.run_description['training_description']
-        training_batch_size = training_description['batch_size']
-        num_predicted_notes_in_training_sample = self.num_keys * training_description[
-            'num_predicted_time_steps_in_sample']
-
+        
         num_notes_in_model_input = get_model_input_shape(self.model)
 
-        self.training_note_sample_generator = NoteSampleGenerator(
-            master_note_array=self.training_master_note_array,
-            num_notes_in_model_input=num_notes_in_model_input,
-            num_predicted_notes_in_sample=num_predicted_notes_in_training_sample,
-            batch_size=training_batch_size,
-            random_seed=0
-        )
+        if self.mode == 'train':
+            training_description = self.run_description['training_description']
+            training_batch_size = training_description['batch_size']
+            num_predicted_notes_in_training_sample = self.num_keys * training_description[
+                'num_predicted_time_steps_in_sample']
+
+            if self.get_run_index() == 0:
+                self.log("Creating a fresh training generator.")
+                self.training_note_sample_generator = NoteSampleGenerator(
+                    master_note_array=self.training_master_note_array,
+                    num_notes_in_model_input=num_notes_in_model_input,
+                    num_predicted_notes_in_sample=num_predicted_notes_in_training_sample,
+                    batch_size=training_batch_size,
+                    random_seed=0
+                )
+            else:
+                previous_generator_state_path = self.get_generator_state_path(run_index=self.get_run_index() - 1)
+                self.log("Loading previous training generator state from path " + previous_generator_state_path)
+                self.training_note_sample_generator.load_state(file_path=previous_generator_state_path)
+
+            self.log('\n' * 2 + self.training_note_sample_generator.get_summary_string() + '\n')
 
         validation_description = self.run_description['validation_description']
         validation_batch_size = validation_description['batch_size']
@@ -212,12 +225,8 @@ class Run(Logger):
             random_seed=0
         )
 
-        if self.get_run_index() != 0:
-            previous_generator_state_path = self.get_generator_state_path(run_index=self.get_run_index() - 1)
-            self.log("Loading previous training generator state from path " + previous_generator_state_path)
-            self.training_note_sample_generator.load_state(file_path=previous_generator_state_path)
-
-        self.log('\n' * 2 + self.training_note_sample_generator.get_summary_string() + '\n')
+        if self.mode == 'evaluate':
+            self.log('\n' * 2 + self.validation_note_sample_generator.get_summary_string() + '\n')
 
     def save_model(self):
         """
@@ -252,20 +261,29 @@ class Run(Logger):
 
         return checkpoint
 
-    def loss_logging_method_creator(self, steps_per_epoch):
+    def loss_logging_method_creator(self, steps_per_epoch, mode):
         """
         Generates a callback function for logging the loss as training progresses.
 
-        steps_per_epoch: Integer specifying how many steps are in each training epoch.
+        steps_per_epoch: Integer specifying how many steps are in each training epoch
+        mode: 'train' for logging training batches or 'evaluate' for validation batches
         """
+
+        if mode == 'train':
+            generator = self.training_note_sample_generator
+        elif mode == 'evaluate':
+            generator = self.validation_note_sample_generator
 
         def logging_method(batch=None, logs=None):
             if logs != {}:
                 batch_string = str(batch) + '/' + str(steps_per_epoch)
                 percent_data_string = str(
-                    round(self.training_note_sample_generator.get_fraction_data_seen() * 100, 3)) + '%'
+                    round(generator.get_fraction_data_seen() * 100, 3)) + '%'
                 loss_string = str(round(logs.get('loss'), 7))
-                log_string = batch_string + ' ' + percent_data_string + ' ' + loss_string
+
+                mode_string = '        Evaluating on test set: ' if mode == 'evaluate' else ''
+
+                log_string = mode_string + batch_string + ' ' + percent_data_string + ' ' + loss_string
 
                 self.log(log_string)
 
@@ -326,37 +344,68 @@ class Run(Logger):
         fraction_validation_data_each_epoch = validation_description['fraction_data_each_epoch']
 
         epochs = training_description['epochs']
-        training_steps_per_epoch = int(
-            fraction_training_data_each_epoch * self.training_note_sample_generator.get_total_batches_count())
-        validation_steps_per_epoch = int(
-            fraction_validation_data_each_epoch * self.validation_note_sample_generator.get_total_batches_count())
-
-        self.log()
-        self.log("Beginning training.")
-        self.log("    Training steps per epoch: " + str(training_steps_per_epoch))
-        self.log("    Validation steps per epoch: " + str(validation_steps_per_epoch))
-        self.log()
-
         save_state_callback = ExecuteEveryNBatchesAndEpochCallback(
-            run_frequency_in_batches=training_description['checkpoint_frequency_in_steps'],
-            method_to_run=self.checkpoint_method_creator(),
-            method_to_run_on_epoch_end=None,
+            train_run_frequency_in_batches=training_description['checkpoint_frequency_in_steps'],
+            train_method_to_run=self.checkpoint_method_creator(),
         )
 
-        logging_callback = ExecuteEveryNBatchesAndEpochCallback(
-            run_frequency_in_batches=1,
-            method_to_run=self.loss_logging_method_creator(
-                steps_per_epoch=training_steps_per_epoch
-            ),
-            method_to_run_on_epoch_end=self.epoch_logging_method_creator(),
-        )
+        if self.mode == 'train':
+            training_steps_per_epoch = int(
+                fraction_training_data_each_epoch * self.training_note_sample_generator.get_total_batches_count())
 
-        self.model.fit(
-            x=self.training_note_sample_generator,
-            epochs=epochs,
-            verbose=2,
-            steps_per_epoch=training_steps_per_epoch,
-            validation_data=self.validation_note_sample_generator,
-            validation_steps=validation_steps_per_epoch,
-            callbacks=[save_state_callback, logging_callback]
-        )
+            validation_steps_per_epoch = int(
+                fraction_validation_data_each_epoch * self.validation_note_sample_generator.get_total_batches_count())
+
+            self.log()
+            self.log("Beginning training.")
+            self.log("    Training steps per epoch: " + str(training_steps_per_epoch))
+            self.log("    Validation steps per epoch: " + str(validation_steps_per_epoch))
+            self.log()
+
+            logging_callback = ExecuteEveryNBatchesAndEpochCallback(
+                train_run_frequency_in_batches=1,
+                test_run_frequency_in_batches=1,
+                train_method_to_run=self.loss_logging_method_creator(
+                    steps_per_epoch=training_steps_per_epoch,
+                    mode='train',
+                ),
+                test_method_to_run=self.loss_logging_method_creator(
+                    steps_per_epoch=validation_steps_per_epoch,
+                    mode='evaluate',
+                ),
+                method_to_run_on_epoch_end=self.epoch_logging_method_creator(),
+            )
+
+            self.model.fit(
+                x=self.training_note_sample_generator,
+                epochs=epochs,
+                verbose=2,
+                steps_per_epoch=training_steps_per_epoch,
+                validation_data=self.validation_note_sample_generator,
+                validation_steps=validation_steps_per_epoch,
+                callbacks=[logging_callback, save_state_callback]
+            )
+        elif self.mode == 'evaluate':
+            training_steps_per_epoch = 1
+            validation_steps_per_epoch = self.validation_note_sample_generator.get_total_batches_count()
+
+            self.log()
+            self.log("Beginning evaluation.")
+            self.log()
+
+            logging_callback = ExecuteEveryNBatchesAndEpochCallback(
+                test_run_frequency_in_batches=1,
+                test_method_to_run=self.loss_logging_method_creator(
+                    steps_per_epoch=validation_steps_per_epoch,
+                    mode='evaluate',
+                ),
+            )
+
+            self.model.evaluate(
+                x=self.validation_note_sample_generator,
+                verbose=2,
+                steps=validation_steps_per_epoch,
+                callbacks=[logging_callback]
+            )
+        else:
+            raise Exception("Mode must be either 'train' or 'evaluate'.")
