@@ -16,7 +16,7 @@ import sys
 import numpy as np
 
 np.random.seed(0)  # should ensure consistent model weight initializations
-from tensorflow.keras.layers import Input, Conv1D, Activation
+from tensorflow.keras.layers import Input, Conv1D, Activation, LayerNormalization
 from tensorflow.keras.models import Model
 
 
@@ -37,12 +37,10 @@ def main():
     with open(parameters_file_path, 'rb') as params_file:
         model_params = pickle.load(params_file)
 
-    filters = np.array(model_params['filters'])
+    filters = model_params['filters']
 
-    if filters.ndim == 1:
-        filters = np.array([filters])
-    elif filters.ndim != 2:
-        raise Exception("The 'filters' parameter must be a one or two dimensional array.")
+    if not isinstance(filters[0], list):
+        filters = [filters]
 
     ######################
     ### MODEL BUILDING ###
@@ -51,10 +49,10 @@ def main():
     inputs = Input(shape=(None, 1))
     conv = inputs
 
-    for block_id in range(0, filters.shape[0]):
+    for block_id in range(0, len(filters)):
         block_filters = filters[block_id]
 
-        for i in range(0, filters.shape[1]):
+        for i in range(0, len(block_filters)):
             conv = Conv1D(filters=block_filters[i], kernel_size=2, strides=1, dilation_rate=2 ** i, padding='valid')(
                 conv)
             conv = Activation('relu')(conv)
