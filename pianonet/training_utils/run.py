@@ -5,7 +5,7 @@ import time
 
 import tensorflow as tf
 from tensorflow.keras.models import load_model
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam, Nadam
 
 from pianonet.core.misc_tools import save_dictionary_to_json_file, load_dictionary_from_json_file, create_directories
 from pianonet.model_building.get_model_input_shape import get_model_input_shape
@@ -334,6 +334,8 @@ class Run(Logger):
         if self.get_run_index() == 0:
             if optimizer_description['type'] == 'Adam':
                 optimizer = Adam(**optimizer_description['kwargs'])
+            elif optimizer_description['type'] == 'Nadam':
+                optimizer = Nadam(**optimizer_description['kwargs'])
             else:
                 raise Exception("Optimizer type " + optimizer_description['type'] + " not yet supported.")
 
