@@ -75,6 +75,10 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
     w_at_one = np.transpose(model.get_layer(index=1).get_weights()[0])
     b_at_one = np.transpose([model.get_layer(index=1).get_weights()[1]])
 
+    saved_activation_functions = [None]
+    for i in range(1, num_model_layers):
+        saved_activation_functions.append(model.layers[i].activation)
+
     saved_weight_entries = []
     dilation_rates = []
     for i in range(0, num_model_layers - 2):
@@ -121,7 +125,7 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
 
             result = np.matmul(w, inputs) + b
 
-            activation_function = model.layers[layer_index+1].activation
+            activation_function = saved_activation_functions[layer_index+1]
             result = activation_function(result)
 
             return result
@@ -160,7 +164,7 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
 
             result = np.matmul(w1, left_input) + np.matmul(w2, right_input) + b
 
-            activation_function = model.layers[layer_index+1].activation
+            activation_function = saved_activation_functions[layer_index+1]
             result = activation_function(result)
 
             return result
