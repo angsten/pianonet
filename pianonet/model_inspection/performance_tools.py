@@ -121,7 +121,8 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
 
             result = np.matmul(w, inputs) + b
 
-            result = result.clip(min=0)  # This assumes relu!
+            activation_function = model.layers[layer_index+1].activation
+            result = activation_function(result)
 
             return result
 
@@ -159,7 +160,8 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
 
             result = np.matmul(w1, left_input) + np.matmul(w2, right_input) + b
 
-            result = result.clip(min=0)
+            activation_function = model.layers[layer_index+1].activation
+            result = activation_function(result)
 
             return result
 
