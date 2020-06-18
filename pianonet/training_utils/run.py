@@ -196,15 +196,16 @@ class Run(Logger):
             num_predicted_notes_in_training_sample = self.num_keys * training_description[
                 'num_predicted_time_steps_in_sample']
 
+            self.training_note_sample_generator = NoteSampleGenerator(
+                master_note_array=self.training_master_note_array,
+                num_notes_in_model_input=num_notes_in_model_input,
+                num_predicted_notes_in_sample=num_predicted_notes_in_training_sample,
+                batch_size=training_batch_size,
+                random_seed=0
+            )
+
             if self.get_run_index() == 0:
                 self.log("Creating a fresh training generator.")
-                self.training_note_sample_generator = NoteSampleGenerator(
-                    master_note_array=self.training_master_note_array,
-                    num_notes_in_model_input=num_notes_in_model_input,
-                    num_predicted_notes_in_sample=num_predicted_notes_in_training_sample,
-                    batch_size=training_batch_size,
-                    random_seed=0
-                )
             else:
                 previous_generator_state_path = self.get_generator_state_path(run_index=self.get_run_index() - 1)
                 self.log("Loading previous training generator state from path " + previous_generator_state_path)
