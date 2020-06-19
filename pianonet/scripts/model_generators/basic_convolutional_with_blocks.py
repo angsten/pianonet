@@ -23,6 +23,7 @@ import numpy as np
 np.random.seed(0)  # should ensure consistent model weight initializations
 from tensorflow.keras.layers import Input, Conv1D, Activation
 from tensorflow.keras.models import Model
+from tensorflow.keras.initializers import Constant
 
 
 def main():
@@ -68,6 +69,13 @@ def main():
     def default_dilation_function(layer_index):
         return 2 ** layer_index
 
+    use_calibrated_output_bias = model_params.get('use_calibrated_output_bias', False)
+
+    if use_calibrated_output_bias:
+        output_bias_initializer = Constant(-3.2) # This will default to P(note=1) = 0.04, which is a normal base rate
+    else:
+        output_bias_initializer = "zeros"
+
     ######################
     ### MODEL BUILDING ###
     ######################
@@ -86,7 +94,13 @@ def main():
                           padding='valid')(conv)
             conv = Activation(default_activation)(conv)
 
-    outputs = Conv1D(filters=1, kernel_size=1, strides=1, dilation_rate=1, padding='valid')(conv)
+
+    outputs = Conv1D(filters=1,
+                     kernel_size=1,
+                     strides=1,
+                     dilation_rate=1,
+                     padding='valid',
+                     bias_initializer=output_bias_initializer)(conv)
     outputs = Activation('sigmoid')(outputs)
 
     model = Model(inputs=inputs, outputs=outputs)
