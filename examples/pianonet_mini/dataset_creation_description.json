@@ -1,0 +1,23 @@
+{
+  "file_name_prefix": "pianonet_mini_dataset",
+  "min_key_index": 34,
+  "num_keys": 64,
+  "resolution": 1.0,
+  "end_padding_range_in_seconds": [
+    4.0,
+    6.0
+  ],
+  "num_augmentations_per_midi_file": 2,
+  "stretch_range": [
+    0.85,
+    1.2
+  ],
+  "time_steps_crop_range": [],
+  "midi_locator": {
+    "paths_to_directories_of_midi_files": [
+      "../midi/"
+    ],
+    "whitelisted_midi_file_names": []
+  },
+  "validation_fraction": 0.2
+}
