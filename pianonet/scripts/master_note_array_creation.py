@@ -27,7 +27,7 @@ def main():
 
     if len(arguments) != 3:
         print("Rerun with the proper arguments. Example usage:\n")
-        print(" $ python master_note_array_creation.py /path/to/input/file.json /path/to/output/master_note_array.mna")
+        print(" $ python master_note_array_creation.py /path/to/input/file.json /path/to/output/directory/")
         print()
         return
 
