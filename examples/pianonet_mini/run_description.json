@@ -1,0 +1,55 @@
+{
+  "data_description": {
+    "training_master_note_array_path": "./pianonet_mini_dataset_0_training.mna",
+    "validation_master_note_array_path": "./pianonet_mini_dataset_0_validation.mna"
+  },
+  "model_description": {
+    "model_path": "",
+    "model_initializer": {
+      "path": "../../pianonet/scripts/model_generators/basic_convolutional_with_blocks.py",
+      "params": {
+        "filter_increments": [
+          [
+            4,
+            4,
+            4,
+            6,
+            6,
+            6,
+            8,
+            8,
+            8,
+            12,
+            12,
+            12,
+            16
+          ]
+        ],
+        "default_activation": "elu"
+      }
+    }
+  },
+  "training_description": {
+    "batch_size": 1,
+    "num_predicted_time_steps_in_sample": 48,
+    "epochs": 10,
+    "checkpoint_frequency_in_steps": 3000,
+    "fraction_data_each_epoch": 0.25,
+    "loss": "binary_crossentropy",
+    "optimizer_description": {
+      "type": "Nadam",
+      "kwargs": {
+        "lr": 0.001,
+        "beta_1": 0.9,
+        "beta_2": 0.999,
+        "epsilon": 1e-07,
+        "decay": 0.0
+      }
+    }
+  },
+  "validation_description": {
+    "batch_size": 1,
+    "num_predicted_time_steps_in_sample": 512,
+    "fraction_data_each_epoch": 1.0
+  }
+}

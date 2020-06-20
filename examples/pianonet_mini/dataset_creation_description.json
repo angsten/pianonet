@@ -15,7 +15,7 @@
   "time_steps_crop_range": [],
   "midi_locator": {
     "paths_to_directories_of_midi_files": [
-      "../midi/"
+      "./midi_data"
     ],
     "whitelisted_midi_file_names": []
   },
