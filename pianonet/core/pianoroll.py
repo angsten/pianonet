@@ -162,9 +162,7 @@ class Pianoroll(object):
         if last_non_zero_index <= first_non_zero_index:
             raise Exception("The entire pianoroll is silence. Trimming silence would result in an empty array.")
 
-        self.array = self.array[first_non_zero_index:last_non_zero_index+1]
-
-
+        self.array = self.array[first_non_zero_index:last_non_zero_index + 1]
 
     def get_num_timesteps(self):
         """
