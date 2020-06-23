@@ -30,7 +30,7 @@ An end-to-end example, from dataset creation to performance generation, can be f
 3. To initiate training, run `python ../../pianonet/scripts/runner.py ./` In a separate terminal in the same directory, you can run `tail -n 10000 -f output_train.log` to monitor the training loss in real time. After ten epochs, the trained model will be located at `./models/0_trained`
 4. If you optionally wish to further train the model, re-run the command in the above step. This will concatenate output to output_train.log as before, and the new model will be checkpointed at `./models/1_trained`
 
-### Generating Performances (Listen to your the Fruits of your Labor)
+### Generating Performances (Listen to the Fruits of your Labor)
 
 1. Within the `examples/pianonet_mini` directory, run the command `jupyter notebook` This should start a notebook server and open a local file tree within your directory. Click on the notebook file named `get_performances.ipynb`
 2. Once you've opened the notebook, run the cells in order and read the important notes in each cell. You will be able to listen to model performances and save perfromances you like as midi files.
