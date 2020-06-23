@@ -40,6 +40,6 @@ Note: This will take approximately 5 minutes of active time and 25 minutes of tr
 
 ### How Can I Improve my Model's Performances?
 
-If things don't sound like you had hoped, you can train longer, make the model bigger, or add more data by scraping piano midi files from the internet. Any midi files you want to add to the training set can be added to the `examples/pianonet_mini/midi/` directory, but you must then rerun all of the steps in the training portion of the tutorial. To make the model wider, trying increasing the values of the `filter_increments` array by two and restart training. Alternatively, add more values to the `filter_increments` lists to make the model deeper.
+If things don't sound like you had hoped, you can train longer, make the model bigger, or add more data by scraping piano midi files from the internet. Any midi files you want to add to the training set can be added to the `examples/pianonet_mini/midi/` directory, but you must then rerun all of the steps in the training portion of the tutorial. To make the model wider, open the `examples/pianonet_mini/run_description.json` file and increase the values of the `filter_increments` array by around two and restart training. Alternatively, add more values to the `filter_increments` lists to make the model deeper.
 
 Enjoy, and please report any issues you run into!
