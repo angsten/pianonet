@@ -7,7 +7,7 @@
     4.0,
     6.0
   ],
-  "num_augmentations_per_midi_file": 2,
+  "num_augmentations_per_midi_file": 4,
   "stretch_range": [
     0.85,
     1.2
