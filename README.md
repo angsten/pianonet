@@ -33,7 +33,7 @@ An end-to-end example, from dataset creation to performance generation, can be f
 
 ### Generating Performances
 
-1. Within the `examples/pianonet_mini` directory in yet another terminal, run the command `jupyter notebook` (if this doesn't work, make sure your venv is activated and your `PYTHONPATH` environment variable is pointing to the pianonet project directory). This should start a notebook server and open a local file tree within your directory. Click on the notebook file named `get_performances.ipynb`
+1. Within the `examples/pianonet_mini` directory in yet another terminal, run the command `../../venv/bin/jupyter notebook` (if this doesn't work, make sure your venv is activated and your `PYTHONPATH` environment variable is pointing to the pianonet project directory). This should start a notebook server and open a local file tree within your directory. Click on the notebook file named `get_performances.ipynb`
 2. Once you've opened the notebook, run the cells in order and read the important notes in each cell. You will be able to listen to model performances and save performances you like as midi files.
 3. If things don't sound as good as you would like, either train longer or add more data by scraping midi files from the internet. 
 
