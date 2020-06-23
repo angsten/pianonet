@@ -12,34 +12,48 @@
           [
             4,
             4,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2
+          ],
+          [
             4,
-            6,
-            6,
-            6,
-            8,
-            8,
-            8,
-            12,
-            12,
-            12,
-            16
+            4,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2
           ]
         ],
-        "default_activation": "elu"
+        "default_activation": "elu",
+        "use_calibrated_output_bias": true
       }
     }
   },
   "training_description": {
-    "batch_size": 1,
-    "num_predicted_time_steps_in_sample": 48,
+    "batch_size": 2,
+    "num_predicted_time_steps_in_sample": 24,
     "epochs": 10,
-    "checkpoint_frequency_in_steps": 3000,
-    "fraction_data_each_epoch": 0.25,
+    "checkpoint_frequency_in_steps": 2000,
+    "fraction_data_each_epoch": 0.1,
     "loss": "binary_crossentropy",
     "optimizer_description": {
-      "type": "Nadam",
+      "type": "Adam",
       "kwargs": {
-        "lr": 0.001,
+        "lr": 0.0002,
         "beta_1": 0.9,
         "beta_2": 0.999,
         "epsilon": 1e-07,
