@@ -26,7 +26,7 @@ An end-to-end example, from dataset creation to performance generation, can be f
 
 ### Training the Model
 
-Note: This will take approximately 5 minutes active time and 25 minutes training time to complete. You can stop training after five minutes and the rest of the tutorial will still work.
+Note: This will take approximately 5 minutes of active time and 25 minutes of training time to complete. You can stop training after five minutes and the rest of the tutorial will still work.
 
 1. Navigate to the example directory with `cd examples/pianonet_mini`
 2. To create the training and validation datasets, run `python ../../pianonet/scripts/master_note_array_creation.py ./dataset_creation_description.json ./`
