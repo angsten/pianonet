@@ -14,5 +14,5 @@ Keras==2.3.0
 numpy==1.18.4
 pygame==1.9.6
 pypianoroll==0.5.0
-tensorflow==2.0.1
+tensorflow==2.2.0
 jupyterlab==2.1.2
