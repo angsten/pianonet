@@ -37,6 +37,9 @@ Note: This will take approximately 5 minutes of active time and 25 minutes of tr
 
 1. Within the `examples/pianonet_mini` directory, run the command `../../venv/bin/jupyter notebook` (if this doesn't work, make sure your venv is activated and your `PYTHONPATH` environment variable is pointing to the pianonet project directory as noted above). This should start a notebook server and open a local file tree within your directory. Click on the notebook file named `get_performances.ipynb`
 2. Once you've opened the notebook, run the cells in order and read the provided notes. You will be able to listen to your models performances and save any of these as midi files.
-3. If things don't sound like you had hoped, either train longer or add more data by scraping piano midi files from the internet. 
+
+### How Can I Improve my Model's Performances?
+
+If things don't sound like you had hoped, you can train longer, make the model bigger, or add more data by scraping piano midi files from the internet. Any midi files you want to add to the training set can be added to the `examples/pianonet_mini/midi/` directory, but you must then rerun all of the steps in the training portion of the tutorial. To make the model wider, trying increasing the values of the `filter_increments` array by two and restart training. Alternatively, add more values to the `filter_increments` lists to make the model deeper.
 
 Enjoy, and please report any issues you run into!
