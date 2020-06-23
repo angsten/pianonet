@@ -30,7 +30,7 @@ Note: This will take approximately 5 minutes of active time and 25 minutes of tr
 
 1. Navigate to the example directory with `cd examples/pianonet_mini`
 2. To create the training and validation datasets, run `python ../../pianonet/scripts/master_note_array_creation.py ./dataset_creation_description.json ./`
-3. To initiate training, run `python ../../pianonet/scripts/runner.py ./` In a separate terminal in the same directory, you can run `tail -n 10000 -f output_train.log` to monitor the training loss in real time. After ten epochs, the trained model will be located at `./models/0_trained` This should take about ten minutes on a fast computer
+3. To initiate training, run `python ../../pianonet/scripts/runner.py ./` In a separate terminal in the same directory, you can run `tail -n 10000 -f output_train.log` to monitor the training loss in real time. The trained model will be checkpointed at `./models/0_trained` This entire process should take about 20 minutes on a fast computer
 4. If you wish to further train the model, re-run the command in the above step. This will concatenate output to output_train.log as before, and the new model will be checkpointed at `./models/1_trained`
 
 ### Generating Performances
