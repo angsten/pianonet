@@ -10,7 +10,12 @@ from tensorflow.keras import backend as K
 from pianonet.model_building.get_model_input_shape import get_model_input_shape
 
 
-def get_performance(model, seed_note_array, num_time_steps, validation_fraction=0.0):
+def get_performance(model,
+                    seed_note_array,
+                    num_time_steps,
+                    validation_fraction=0.0,
+                    use_edge_aversion=False,
+                    aversion_params_dict=None):
     """
     Takes in a seed note array and generated num_timesteps of piano notes sampled
     from the model's output probabilities. A full NoteArray instance, including
@@ -25,6 +30,10 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
     validation_fraction: Float between 0 and 1 specifying the fraction of predicted notes for which the optimized
                          model output will be randomly compared to the model.predict output every
                          validation_step_size notes. Set to 0.0 for no validation (only necessary for debugging).
+    use_edge_aversion: Boolean controlling whether or not to keep notes biased toward the middle of the output space.
+                       This will tend to prevent the outputs from 'going over the edge', which can cause odd sounding
+                       performances.
+    aversion_params_dict: Params to control how strong edge aversion is
     """
 
     num_keys = seed_note_array.note_array_transformer.num_keys
@@ -104,14 +113,14 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
 
     dilation_rates.append(model.layers[-2].dilation_rate[0])
 
+    def sigmoid(x):
+        return 1.0 / (1.0 + math.exp(-x))
+
     def get_output_tensor_at_node(input_position, layer_index):
         """
         Recursively called function for building output states. Each node in the model is defined by an x coordinate,
         the input position, and a y coordinate, a layer index.
         """
-
-        def sigmoid(x):
-            return 1.0 / (1.0 + math.exp(-x))
 
         # node = model.get_layer(index=layer_index)
         # dilation_rate = node.dilation_rate[0]
@@ -125,7 +134,7 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
 
             result = np.matmul(w, inputs) + b
 
-            activation_function = saved_activation_functions[layer_index+1]
+            activation_function = saved_activation_functions[layer_index + 1]
             result = activation_function(result)
 
             return result
@@ -164,7 +173,7 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
 
             result = np.matmul(w1, left_input) + np.matmul(w2, right_input) + b
 
-            activation_function = saved_activation_functions[layer_index+1]
+            activation_function = saved_activation_functions[layer_index + 1]
             result = activation_function(result)
 
             return result
@@ -190,7 +199,27 @@ def get_performance(model, seed_note_array, num_time_steps, validation_fraction=
                     print("  Warning: Optimized output mode giving inconsistent results.")
                     print("    Difference is " + str(optimized_inconsistency_magnitude))
 
-            pred = (res_opt > random.uniform(0.0, 1.0))
+            if use_edge_aversion:
+                distance_in_keys_from_edge = min(key, (num_keys - 1) - key)
+                fraction_from_edge = distance_in_keys_from_edge / (
+                        (num_keys - 2) / 2)  # 0.0 at edge key, 1.0 at center two
+
+                fraction_of_edges_discounted_heavily = aversion_params_dict['fraction_of_edges_discounted_heavily']
+                step_intensity = aversion_params_dict['step_intensity']
+                boost = 1.0# + fraction_of_edges_discounted_heavily / 6.0 #how much to encourage non-discounted regions
+
+                # want a discount curve as function of x (between zero and one) that is 0 when x is 1.0, near 1 until
+                # x is 0.4 (in the last 20% of keys on both sides), and then quickly decays to 0.0 at the edge when x
+                # is 0. This is a 1 - clipped sigmoid with the center shifted to 0.4
+                def discount_function(x):
+                    return boost * sigmoid(step_intensity * (x - fraction_of_edges_discounted_heavily))
+
+                p_discount = discount_function(fraction_from_edge)
+                # print(key, ':', fraction_from_edge, 'discount:', p_discount)
+            else:
+                p_discount = 1.0
+
+            pred = ((res_opt * p_discount) > random.uniform(0.0, 1.0))
             output_data.append(pred)
 
             raw_input.popleft()
