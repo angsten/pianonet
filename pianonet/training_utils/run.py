@@ -56,6 +56,8 @@ class Run(Logger):
             directory_names_list=['models', 'run_descriptions', 'generator_states']
         )
 
+        create_directories(parent_directory_path=os.path.join(self.path, 'models'), directory_names_list=['archived'])
+
         if os.path.exists(self.get_state_path()):
             self.log("Saved state found. Restarting the run and incrementing the run index.")
             self.load_state()
@@ -115,7 +117,8 @@ class Run(Logger):
         return os.path.join(self.path, 'models', str(run_index) + '_trained_model')
 
     def get_archive_model_path(self, run_index, epoch):
-        return os.path.join(self.path, 'models', 'run_' + str(run_index) + '_epoch_' + str(epoch) + '_archived_model')
+        return os.path.join(self.path, 'models', 'archived',
+                            'run_' + str(run_index) + '_epoch_' + str(epoch) + '_archived_model')
 
     def get_run_description_path(self, run_index):
         return os.path.join(self.path, 'run_descriptions', str(run_index) + '_run_description.json')
@@ -162,7 +165,7 @@ class Run(Logger):
             self.log("Initializing model using file at " + model_initializer['path'])
             self.log("Params used for model initialization are " + str(model_initializer['params']))
 
-            model_output_path = os.path.join(self.path, "models", "initial.model")
+            model_output_path = os.path.join(self.path, "models", "initial_model")
             model_parameters_file_path = self.get_full_run_path('model_parameters')
 
             with open(model_parameters_file_path, 'wb') as file:
@@ -190,7 +193,7 @@ class Run(Logger):
         Using self.run_description specifications, load in either a new training data generators or previously
         saved training data generators. Also load the validation data generator (never loaded from file).
         """
-        
+
         num_notes_in_model_input = get_model_input_shape(self.model)
 
         if self.mode == 'train':
