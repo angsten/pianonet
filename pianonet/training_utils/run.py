@@ -114,6 +114,9 @@ class Run(Logger):
     def get_model_path(self, run_index):
         return os.path.join(self.path, 'models', str(run_index) + '_trained_model')
 
+    def get_archive_model_path(self, run_index, epoch):
+        return os.path.join(self.path, 'models', 'run_' + str(run_index) + '_epoch_' + str(epoch) + '_archived_model')
+
     def get_run_description_path(self, run_index):
         return os.path.join(self.path, 'run_descriptions', str(run_index) + '_run_description.json')
 
@@ -244,6 +247,16 @@ class Run(Logger):
         generator_checkpoint_path = self.get_generator_state_path(run_index=self.get_run_index())
         self.training_note_sample_generator.save_state(generator_checkpoint_path)
 
+    def archive_model_method_creator(self):
+        """
+        Saves an archived version of the most recent model in the models directory.
+        """
+
+        def archive_model(epoch=None, logs=None):
+            self.model.save(self.get_archive_model_path(run_index=self.get_run_index(), epoch=epoch))
+
+        return archive_model
+
     def checkpoint_method_creator(self):
         """
         Saves all relevant parts of the current run's training session and state to files within the run directory
@@ -350,6 +363,7 @@ class Run(Logger):
         save_state_callback = ExecuteEveryNBatchesAndEpochCallback(
             train_run_frequency_in_batches=training_description['checkpoint_frequency_in_steps'],
             train_method_to_run=self.checkpoint_method_creator(),
+            method_to_run_on_epoch_end=self.archive_model_method_creator(),
         )
 
         if self.mode == 'train':
