@@ -23,7 +23,7 @@ import numpy as np
 np.random.seed(0)  # should ensure consistent model weight initializations
 from tensorflow.keras.layers import Input, Conv1D, Activation
 from tensorflow.keras.models import Model
-from tensorflow.keras.initializers import Constant
+from tensorflow.keras.initializers import Constant, he_normal
 
 
 def main():
@@ -76,6 +76,11 @@ def main():
     else:
         output_bias_initializer = "zeros"
 
+    default_kernel_initializer = model_params.get('default_kernel_initializer', 'glorot_uniform')
+
+    if default_kernel_initializer == 'he_normal':
+        default_initializer = he_normal
+
     ######################
     ### MODEL BUILDING ###
     ######################
@@ -91,7 +96,8 @@ def main():
                           kernel_size=2,
                           strides=1,
                           dilation_rate=default_dilation_function(i),
-                          padding='valid')(conv)
+                          padding='valid',
+                          kernel_initializer=default_kernel_initializer)(conv)
             conv = Activation(default_activation)(conv)
 
 
@@ -100,6 +106,7 @@ def main():
                      strides=1,
                      dilation_rate=1,
                      padding='valid',
+                     kernel_initializer=default_kernel_initializer,
                      bias_initializer=output_bias_initializer)(conv)
     outputs = Activation('sigmoid')(outputs)
 
