@@ -189,41 +189,31 @@ def get_performance(model,
 
         for key in range(0, num_keys):
 
-            res_opt = get_output_tensor_at_node(input_position=input_end_index, layer_index=(num_model_layers - 2))
+            probability_of_key_played = get_output_tensor_at_node(input_position=input_end_index,
+                                                                  layer_index=(num_model_layers - 2))
 
             if random.uniform(0.0, 1.0) < validation_fraction:
                 res_model = model.predict([[np.array(raw_input).reshape(1, -1)]])[0][-1]
 
-                optimized_inconsistency_magnitude = abs(res_model - res_opt)
+                optimized_inconsistency_magnitude = abs(res_model - probability_of_key_played)
                 if optimized_inconsistency_magnitude > 1e-6:
                     print("  Warning: Optimized output mode giving inconsistent results.")
                     print("    Difference is " + str(optimized_inconsistency_magnitude))
 
             if use_edge_aversion:
                 distance_in_keys_from_edge = min(key, (num_keys - 1) - key)
-                fraction_from_edge = distance_in_keys_from_edge / (
-                        (num_keys - 2) / 2)  # 0.0 at edge key, 1.0 at center two
 
-                fraction_of_edges_discounted_heavily = aversion_params_dict['fraction_of_edges_discounted_heavily']
-                step_intensity = aversion_params_dict['step_intensity']
-                boost = 1.0# + fraction_of_edges_discounted_heavily / 6.0 #how much to encourage non-discounted regions
+                if distance_in_keys_from_edge < len(aversion_params_dict['probability_thresholds']):
+                    probability_threshold = aversion_params_dict['probability_thresholds'][distance_in_keys_from_edge]
 
-                # want a discount curve as function of x (between zero and one) that is 0 when x is 1.0, near 1 until
-                # x is 0.4 (in the last 20% of keys on both sides), and then quickly decays to 0.0 at the edge when x
-                # is 0. This is a 1 - clipped sigmoid with the center shifted to 0.4
-                def discount_function(x):
-                    return boost * sigmoid(step_intensity * (x - fraction_of_edges_discounted_heavily))
+                    if probability_of_key_played < probability_threshold:
+                        probability_of_key_played = 0.0
 
-                p_discount = discount_function(fraction_from_edge)
-                # print(key, ':', fraction_from_edge, 'discount:', p_discount)
-            else:
-                p_discount = 1.0
-
-            pred = ((res_opt * p_discount) > random.uniform(0.0, 1.0))
-            output_data.append(pred)
+            prediction = (probability_of_key_played > random.uniform(0.0, 1.0))
+            output_data.append(prediction)
 
             raw_input.popleft()
-            raw_input.append(pred)
+            raw_input.append(prediction)
 
         end = time.time()
 
