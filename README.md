@@ -1,4 +1,7 @@
 # PianoNet
+
+![PianoNetImage](https://github.com/angsten/pianonet/blob/master/piano_with_array_keys_filled_in_and_model_6.png)
+
 ## About
 PianoNet is a deep neural network for generating piano compositions. The model architectures are similar to the dilated convolutional networks described in [WaveNet](https://arxiv.org/abs/1609.03499), with modifications for being able to handle piano midi data. These modifications are necessary, as piano notes are a time series of key states (2-dimensional), rather than 1-dimensional samples like the audio used to train WaveNet.
 
