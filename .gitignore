@@ -5,6 +5,7 @@ misc
 testing.py
 data
 notebooks
+models
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
