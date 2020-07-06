@@ -3,7 +3,9 @@ import pickle
 import subprocess
 import time
 
+import numpy as np
 import tensorflow as tf
+import tensorflow.keras.backend as K
 from tensorflow.keras.models import load_model
 from tensorflow.keras.optimizers import Adam, Nadam
 
@@ -347,8 +349,11 @@ class Run(Logger):
         validation_description = self.run_description['validation_description']
         optimizer_description = training_description['optimizer_description']
 
-        ##TODO ADD: or (optimizer kwargs has changed from last run)
-        if self.get_run_index() == 0:
+        num_non_trainable_layers = training_description.get('num_non_trainable_layers', 0)
+
+        need_to_compile_model = (self.get_run_index() == 0) or (num_non_trainable_layers != 0)
+
+        if need_to_compile_model:
             if optimizer_description['type'] == 'Adam':
                 optimizer = Adam(**optimizer_description['kwargs'])
             elif optimizer_description['type'] == 'Nadam':
@@ -356,7 +361,12 @@ class Run(Logger):
             else:
                 raise Exception("Optimizer type " + optimizer_description['type'] + " not yet supported.")
 
-            self.log("Because run index is zero, compiling the model optimizer.")
+            if num_non_trainable_layers != 0:
+                self.log("Freezing the first " + str(num_non_trainable_layers) + " layers.")
+                for layer in self.model.layers[0:num_non_trainable_layers + 1]:
+                    layer.trainable = False
+
+            self.log("Recompiling the model.")
             self.model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=[])
 
         fraction_training_data_each_epoch = training_description['fraction_data_each_epoch']
@@ -395,6 +405,15 @@ class Run(Logger):
                 ),
                 method_to_run_on_epoch_end=self.epoch_logging_method_creator(),
             )
+
+            trainable_parameters_count = np.sum([K.count_params(c) for c in self.model.trainable_weights])
+            non_trainable_parameters_count = np.sum([K.count_params(c) for c in self.model.non_trainable_weights])
+
+            self.log(
+                '    Total model parameters: {:,}'.format(trainable_parameters_count + non_trainable_parameters_count))
+            self.log('    Trainable parameters: {:,}'.format(trainable_parameters_count))
+            self.log('    Non-trainable parameters: {:,}'.format(non_trainable_parameters_count))
+            self.log()
 
             self.model.fit(
                 x=self.training_note_sample_generator,
