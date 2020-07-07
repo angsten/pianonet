@@ -1,4 +1,5 @@
 import pickle
+import joblib
 import random
 
 import numpy as np
@@ -149,8 +150,12 @@ class NoteArray(object):
         Saves the NoteArray instance to a file.
         """
 
-        with open(file_path, 'wb') as file:
-            pickle.dump(self, file=file)
+        if file_path.find('.mna_jl') != -1:
+            print("Using joblib to save")
+            joblib.dump(self, file_path)
+        else:
+            with open(file_path, 'wb') as file:
+                pickle.dump(self, file=file)
 
     def load(self, file_path):
         """
@@ -159,7 +164,13 @@ class NoteArray(object):
         Loads the NoteArray instance from a file.
         """
 
-        with open(file_path, 'rb') as file:
-            loaded_instance = pickle.load(file)
+        loaded_instance = None
 
-            self.__dict__ = loaded_instance.__dict__
+        if file_path.find('.mna_jl') != -1:
+            print("Using joblib to load")
+            loaded_instance = joblib.load(file_path)
+        else:
+            with open(file_path, 'rb') as file:
+                loaded_instance = pickle.load(file)
+
+        self.__dict__ = loaded_instance.__dict__
