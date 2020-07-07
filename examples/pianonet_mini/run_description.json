@@ -1,7 +1,7 @@
 {
   "data_description": {
-    "training_master_note_array_path": "./pianonet_mini_dataset_0_training.mna",
-    "validation_master_note_array_path": "./pianonet_mini_dataset_0_validation.mna"
+    "training_master_note_array_path": "./pianonet_mini_dataset_0_training.mna_jl",
+    "validation_master_note_array_path": "./pianonet_mini_dataset_0_validation.mna_jl"
   },
   "model_description": {
     "model_path": "",

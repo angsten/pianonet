@@ -7,7 +7,7 @@
 #
 #              The output master note array will be saved to
 #
-#                   /path/to/output/directory/prefix_name_in_json_{training, validation, full}_idx.mna
+#                   /path/to/output/directory/prefix_name_in_json_{training, validation, full}_idx.mna_jl
 #
 #              where idx is a counter updated to the next unique integer to avoid overwriting.
 ###
@@ -112,8 +112,7 @@ def main():
             else:
                 set_name_string = "_full"
 
-
-            save_path = os.path.join(save_directory_path, file_name_prefix + "_" + str(i) + set_name_string + ".mna")
+            save_path = os.path.join(save_directory_path, file_name_prefix + "_" + str(i) + set_name_string + ".mna_jl")
 
             if not os.path.exists(save_path):
                 break
