@@ -151,7 +151,6 @@ class NoteArray(object):
         """
 
         if file_path.find('.mna_jl') != -1:
-            print("Using joblib to save")
             joblib.dump(self, file_path)
         else:
             with open(file_path, 'wb') as file:
@@ -167,7 +166,6 @@ class NoteArray(object):
         loaded_instance = None
 
         if file_path.find('.mna_jl') != -1:
-            print("Using joblib to load")
             loaded_instance = joblib.load(file_path)
         else:
             with open(file_path, 'rb') as file:
