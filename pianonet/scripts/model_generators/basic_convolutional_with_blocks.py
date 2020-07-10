@@ -21,7 +21,7 @@ import sys
 import numpy as np
 
 np.random.seed(0)  # should ensure consistent model weight initializations
-from tensorflow.keras.layers import Input, Conv1D, Activation
+from tensorflow.keras.layers import Input, Conv1D, Activation, LayerNormalization
 from tensorflow.keras.models import Model
 from tensorflow.keras.initializers import Constant, he_normal
 
@@ -81,6 +81,8 @@ def main():
     if default_kernel_initializer == 'he_normal':
         default_initializer = he_normal
 
+    use_layer_normalization = model_params.get("use_layer_normalization", False)
+
     ######################
     ### MODEL BUILDING ###
     ######################
@@ -98,6 +100,10 @@ def main():
                           dilation_rate=default_dilation_function(i),
                           padding='valid',
                           kernel_initializer=default_kernel_initializer)(conv)
+
+            if use_layer_normalization:
+                conv = LayerNormalization(axis=-1)(conv)
+
             conv = Activation(default_activation)(conv)
 
 
