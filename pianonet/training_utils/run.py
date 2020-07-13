@@ -363,7 +363,7 @@ class Run(Logger):
 
             if num_non_trainable_layers != 0:
                 self.log("Freezing the first " + str(num_non_trainable_layers) + " layers.")
-                for layer in self.model.layers[0:num_non_trainable_layers + 1]:
+                for layer in self.model.layers[0:num_non_trainable_layers]:
                     layer.trainable = False
 
             self.log("Recompiling the model.")
