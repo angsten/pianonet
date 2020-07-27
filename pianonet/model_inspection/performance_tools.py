@@ -46,7 +46,7 @@ def get_performance(model,
 
     input_data = seed_note_array.get_values_in_range(start_index=-num_notes_in_model_input,
                                                      end_index=None,
-                                                     use_zero_padding_for_out_of_bounds=False)  # SEE IF CAN BE TRUE
+                                                     use_zero_padding_for_out_of_bounds=False)
 
     layer_outputs = functor([np.array([input_data.reshape(-1, 1)])])
 
