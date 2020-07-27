@@ -1,0 +1,23 @@
+{
+  "file_name_prefix": "fur_eli",
+  "min_key_index": 31,
+  "num_keys": 72,
+  "resolution": 1.0,
+  "end_padding_range_in_seconds": [
+    4.0,
+    6.0
+  ],
+  "num_augmentations_per_midi_file": 1,
+  "stretch_range": [
+    1.0,
+    1.0
+  ],
+  "time_steps_crop_range": [],
+  "midi_locator": {
+    "paths_to_directories_of_midi_files": [
+      "/Users/angsten/Documents/runs/progressions/data/"
+    ],
+    "whitelisted_midi_file_names": []
+  },
+  "validation_fraction": 0.0
+}
