@@ -1,8 +1,9 @@
 from tensorflow/tensorflow:2.2.0
 
 # docker build -t pianonet_test:v2 .
-# docker run -it pianonet_test:v2 /bin/bash
 # docker run -p 5000:5000 -i -d pianonet_test:v2
+
+# (To get inside container): docker run -it pianonet_test:v2 /bin/bash
 
 RUN mkdir app
 
@@ -10,6 +11,7 @@ COPY pianonet /app/pianonet
 COPY requirements.txt /app/requirements.txt
 
 RUN mkdir app/models
+
 RUN mkdir app/data
 RUN mkdir app/data/seeds
 RUN mkdir app/data/performances
