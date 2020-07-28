@@ -91,8 +91,11 @@ def performance():
 
     model_path = os.path.join(base_path, 'models', model_name)
 
+    input_pianoroll = Pianoroll(saved_seed_midi_file_path)
+    input_pianoroll.trim_silence_off_ends()
+
     final_pianoroll = get_performance_from_pianoroll(
-        pianoroll_seed=Pianoroll(saved_seed_midi_file_path),
+        pianoroll_seed=input_pianoroll,
         num_time_steps=int(48 * seconds_to_generate),
         model_path=model_path,
     )
