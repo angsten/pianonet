@@ -10,6 +10,7 @@ COPY pianonet /app/pianonet
 COPY requirements.txt /app/pianonet/requirements.txt
 
 RUN mkdir app/pianonet/models
+RUN mkdir app/data
 
 COPY models/r9p0_3500kparams_approx_9_blocks_model app/pianonet/models/r9p0_3500kparams_approx_9_blocks_model
 COPY 1_performance.midi app/pianonet/1_performance.midi
