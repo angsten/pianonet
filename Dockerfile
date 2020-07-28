@@ -7,17 +7,18 @@ from tensorflow/tensorflow:2.2.0
 RUN mkdir app
 
 COPY pianonet /app/pianonet
-COPY requirements.txt /app/pianonet/requirements.txt
+COPY requirements.txt /app/requirements.txt
 
-RUN mkdir app/pianonet/models
+RUN mkdir app/models
 RUN mkdir app/data
+RUN mkdir app/data/seeds
+RUN mkdir app/data/performances
 
-COPY models/r9p0_3500kparams_approx_9_blocks_model app/pianonet/models/r9p0_3500kparams_approx_9_blocks_model
-COPY 1_performance.midi app/pianonet/1_performance.midi
+COPY models/r9p0_3500kparams_approx_9_blocks_model app/models/r9p0_3500kparams_approx_9_blocks_model
 
 ENV PYTHONPATH=/app
 
-RUN pip install -r /app/pianonet/requirements.txt
+RUN pip install -r /app/requirements.txt
 
 EXPOSE 5000
 
