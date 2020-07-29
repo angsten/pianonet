@@ -3,6 +3,7 @@ import math
 import random
 import time
 from collections import deque
+from scipy.linalg.blas import sgemm as matmul
 
 import numpy as np
 from tensorflow.keras import backend as K
@@ -15,7 +16,8 @@ def get_performance(model,
                     num_time_steps,
                     validation_fraction=0.0,
                     use_edge_aversion=False,
-                    aversion_params_dict=None):
+                    aversion_params_dict=None,
+                    assume_elu=False):
     """
     Takes in a seed note array and generated num_timesteps of piano notes sampled
     from the model's output probabilities. A full NoteArray instance, including
@@ -34,6 +36,7 @@ def get_performance(model,
                        This will tend to prevent the outputs from 'going over the edge', which can cause odd sounding
                        performances.
     aversion_params_dict: Params to control how strong edge aversion is
+    assume_elu: If true, optimize to use numpy based elu with alpha = 1 for internal hidden activations (2X faster)
     """
 
     num_keys = seed_note_array.note_array_transformer.num_keys
@@ -113,6 +116,11 @@ def get_performance(model,
 
     dilation_rates.append(model.layers[-2].dilation_rate[0])
 
+    final_layer = model.layers[num_model_layers - 2]
+    final_weights = final_layer.get_weights()
+    w_final = final_weights[0][0]
+    b_final = final_weights[1]
+
     def sigmoid(x):
         return 1.0 / (1.0 + math.exp(-x))
 
@@ -132,21 +140,22 @@ def get_performance(model,
 
             inputs = np.transpose([raw_input[input_position - 1], raw_input[input_position]])
 
-            result = np.matmul(w, inputs) + b
+            result = matmul(1.0, w, inputs) + b
 
-            activation_function = saved_activation_functions[layer_index + 1]
-            result = activation_function(result)
+            if assume_elu:
+                return np.where(result > 0, result, (np.exp(result) - 1))
+            else:
+                activation_function = saved_activation_functions[layer_index + 1]
+                result = activation_function(result)
 
-            return result
+                return result
 
         elif layer_index == (num_model_layers - 2):  # last conv_1d with sigmoid
-            final_layer = model.layers[layer_index]
-            final_weights = final_layer.get_weights()
-            w = final_weights[0][0]
-            b = final_weights[1]
+            w = w_final
+            b = b_final
             inputs = np.transpose(get_output_tensor_at_node(input_position=input_position, layer_index=layer_index - 2))
 
-            final_result = np.matmul(inputs, w) + np.transpose(np.array([[b]]))
+            final_result = matmul(1.0, inputs, w) + np.transpose(np.array([[b]]))
 
             final_result = sigmoid(final_result)  # this assumes sigmoid!
 
@@ -171,12 +180,15 @@ def get_performance(model,
             w2 = saved_weight_entries[layer_index]['w2']
             b = saved_weight_entries[layer_index]['b']
 
-            result = np.matmul(w1, left_input) + np.matmul(w2, right_input) + b
+            result = matmul(1.0, w1, left_input) + matmul(1.0, w2, right_input) + b
 
-            activation_function = saved_activation_functions[layer_index + 1]
-            result = activation_function(result)
+            if assume_elu:
+                return np.where(result > 0, result, (np.exp(result) - 1))
+            else:
+                activation_function = saved_activation_functions[layer_index + 1]
+                result = activation_function(result)
 
-            return result
+                return result
 
     start = time.time()
 

@@ -32,7 +32,8 @@ def get_performance_from_pianoroll(pianoroll_seed,
                     num_time_steps=num_time_steps,
                     validation_fraction=0.0,
                     use_edge_aversion=True,
-                    aversion_params_dict=aversion_params_dict)
+                    aversion_params_dict=aversion_params_dict,
+                    assume_elu=True)
 
     final_pianoroll = final_note_array.get_pianoroll()
 
