@@ -118,77 +118,48 @@ def get_performance(model,
 
     final_layer = model.layers[num_model_layers - 2]
     final_weights = final_layer.get_weights()
-    w_final = final_weights[0][0]
-    b_final = final_weights[1]
+    w_final = np.transpose(final_weights[0][0])
+    b_final = np.transpose(np.array([[final_weights[1]]]))
 
     def sigmoid(x):
         return 1.0 / (1.0 + math.exp(-x))
 
-    def get_output_tensor_at_node(input_position, layer_index):
-        """
-        Recursively called function for building output states. Each node in the model is defined by an x coordinate,
-        the input position, and a y coordinate, a layer index.
-        """
-
-        # node = model.get_layer(index=layer_index)
-        # dilation_rate = node.dilation_rate[0]
-        dilation_rate = dilation_rates[layer_index]
-
-        if layer_index == 1:
-            w = w_at_one
-            b = b_at_one
-
-            inputs = np.transpose([raw_input[input_position - 1], raw_input[input_position]])
-
-            result = matmul(1.0, w, inputs) + b
-
-            if assume_elu:
-                return np.where(result > 0, result, (np.exp(result) - 1))
-            else:
-                activation_function = saved_activation_functions[layer_index + 1]
-                result = activation_function(result)
-
-                return result
-
-        elif layer_index == (num_model_layers - 2):  # last conv_1d with sigmoid
-            w = w_final
-            b = b_final
-            inputs = np.transpose(get_output_tensor_at_node(input_position=input_position, layer_index=layer_index - 2))
-
-            final_result = matmul(1.0, inputs, w) + np.transpose(np.array([[b]]))
-
-            final_result = sigmoid(final_result)  # this assumes sigmoid!
-
-            return final_result
-
+    def get_activated(x, layer_index):
+        if assume_elu:
+            return np.where(x > 0, x, (np.exp(x) - 1))
         else:
-            right_input = get_output_tensor_at_node(input_position=input_position, layer_index=(layer_index - 2))
+            activation_function = saved_activation_functions[layer_index + 1]
+            return activation_function(x)
 
-            if input_position == input_end_index:
-                state_queue = state_queues[layer_index]
 
-                if len(state_queue) == dilation_rate:
-                    left_input = state_queue.popleft()
-                else:
-                    raise Exception("State queue length should always be equal to dilation rate.")
+    def get_output(input_position):
 
-                state_queue.append(right_input)
-            else:
-                raise Exception("Should never touch here.")
+        inputs = np.transpose([raw_input[input_position - 1], raw_input[input_position]])
+
+        right_input = get_activated(matmul(1.0, w_at_one, inputs) + b_at_one, layer_index=1)
+
+        for layer_index in range(3, num_model_layers - 3, 2):
+
+            layer_state_queue = state_queues[layer_index]
 
             w1 = saved_weight_entries[layer_index]['w1']
             w2 = saved_weight_entries[layer_index]['w2']
             b = saved_weight_entries[layer_index]['b']
 
-            result = matmul(1.0, w1, left_input) + matmul(1.0, w2, right_input) + b
+            left_input = layer_state_queue.popleft()
+            layer_state_queue.append(right_input)
 
-            if assume_elu:
-                return np.where(result > 0, result, (np.exp(result) - 1))
-            else:
-                activation_function = saved_activation_functions[layer_index + 1]
-                result = activation_function(result)
+            right_input = matmul(1.0, w1, left_input) + matmul(1.0, w2, right_input) + b
 
-                return result
+            right_input = get_activated(right_input, layer_index)
+
+        final_result = matmul(1.0, w_final, right_input) + b_final
+
+        final_result = sigmoid(final_result)  # this assumes sigmoid!
+
+        return final_result
+
+
 
     start = time.time()
 
@@ -201,8 +172,7 @@ def get_performance(model,
 
         for key in range(0, num_keys):
 
-            probability_of_key_played = get_output_tensor_at_node(input_position=input_end_index,
-                                                                  layer_index=(num_model_layers - 2))
+            probability_of_key_played = get_output(input_end_index)
 
             if random.uniform(0.0, 1.0) < validation_fraction:
                 res_model = model.predict([[np.array(raw_input).reshape(1, -1)]])[0][-1]
