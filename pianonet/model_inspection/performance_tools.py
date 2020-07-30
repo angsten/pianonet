@@ -3,9 +3,9 @@ import math
 import random
 import time
 from collections import deque
-from scipy.linalg.blas import sgemm as matmul
 
 import numpy as np
+from scipy.linalg.blas import sgemm as matmul
 from tensorflow.keras import backend as K
 
 from pianonet.model_building.get_model_input_shape import get_model_input_shape
