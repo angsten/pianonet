@@ -69,7 +69,7 @@ def performance():
     seed_midi_file_data = request.form.get('seed_midi_file_data')
 
     if seed_midi_file_data == None:
-        return {"http_code": 400, "code": "BadRequest", "message": "seed_midi_file not found in request."}
+        return {"http_code": 400, "code": "BadRequest", "message": "seed_midi_file_data not found in request."}
     else:
         seed_midi_file_int_array = [int(x) for x in seed_midi_file_data.split(',')]
 
