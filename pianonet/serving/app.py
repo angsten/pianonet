@@ -9,8 +9,8 @@ from pianonet.model_inspection.performance_from_pianoroll import get_performance
 
 app = Flask(__name__)
 
-# base_path = "/app/"
-base_path = "/Users/angsten/PycharmProjects/pianonet"
+base_path = "/app/"
+# base_path = "/Users/angsten/PycharmProjects/pianonet"
 
 performances_path = os.path.join(base_path, 'data', 'performances')
 
