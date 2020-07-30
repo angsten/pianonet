@@ -9,8 +9,8 @@ from pianonet.model_inspection.performance_from_pianoroll import get_performance
 
 app = Flask(__name__)
 
-base_path = "/app/"
-# base_path = "/Users/angsten/PycharmProjects/pianonet"
+# base_path = "/app/"
+base_path = "/Users/angsten/PycharmProjects/pianonet"
 
 performances_path = os.path.join(base_path, 'data', 'performances')
 
@@ -61,19 +61,26 @@ def get_performance():
 def performance():
     """
     Expects post form data as follows:
-        seed_midi_file: Midi file that forms the seed for a performance
+        seed_midi_file_data: Midi file that forms the seed for a performance as string encoding like "8,2,3,4,5..."
         seconds_to_generate: Number of seconds of new notes to generate
         model_complexity: Quality of model to use, one of ['low', 'medium', 'high', 'highest']
     """
 
-    seed_midi_file = request.files.get('seed_midi_file')
+    seed_midi_file_data = request.form.get('seed_midi_file_data')
 
-    saved_seed_midi_file_path = os.path.join(base_path, 'data', 'seeds', get_random_midi_file_name())
-
-    if seed_midi_file == None:
+    if seed_midi_file_data == None:
         return {"http_code": 400, "code": "BadRequest", "message": "seed_midi_file not found in request."}
     else:
-        seed_midi_file.save(saved_seed_midi_file_path)
+        seed_midi_file_int_array = [int(x) for x in seed_midi_file_data.split(',')]
+
+        frame = bytearray()
+        for i in seed_midi_file_int_array:
+            frame.append(i)
+
+        saved_seed_midi_file_path = os.path.join(base_path, 'data', 'seeds', get_random_midi_file_name())
+
+        with open(saved_seed_midi_file_path, 'wb') as midi_file:
+            midi_file.write(frame)
 
     seconds_to_generate = request.form.get('seconds_to_generate')
 
@@ -85,7 +92,7 @@ def performance():
     model_complexity = request.form.get('model_complexity', 'low')
 
     if model_complexity == 'low':
-        model_name = "r9p0_3500kparams_approx_9_blocks_model"
+        model_name = "micro_1"
     else:
         model_name = "r9p0_3500kparams_approx_9_blocks_model"
 

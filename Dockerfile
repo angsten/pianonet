@@ -17,6 +17,7 @@ RUN mkdir app/data/seeds
 RUN mkdir app/data/performances
 
 COPY models/r9p0_3500kparams_approx_9_blocks_model app/models/r9p0_3500kparams_approx_9_blocks_model
+COPY models/micro_1 app/models/micro_1
 
 ENV PYTHONPATH=/app
 
