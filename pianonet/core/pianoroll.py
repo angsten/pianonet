@@ -2,6 +2,7 @@ import numpy as np
 from pypianoroll import Track, Multitrack
 
 from pianonet.core.midi_tools import play_midi_from_file
+from pianonet.core.custom_multitrack import CustomMultitrack
 
 
 class Pianoroll(object):
@@ -24,19 +25,19 @@ class Pianoroll(object):
                         A midi file can store up to 16 different tracks.
     """
 
-    def __init__(self, initializer):
+    def __init__(self, initializer, use_custom_multitrack=False):
         """
         initializer: A string that is a path to a midi file or an array of shape (time_steps, 128).
         """
 
         if isinstance(initializer, str):
             midi_file_path = initializer
-            self.load_from_midi_file(midi_file_path)
+            self.load_from_midi_file(midi_file_path, use_custom_multitrack)
         else:
             np_array = initializer
             self.array = np.copy(np_array)
 
-    def load_from_midi_file(self, midi_file_path):
+    def load_from_midi_file(self, midi_file_path, use_custom_multitrack):
         """
         midi_file_path: String that is path to a midi file to load. This midi file is assumed to have a beat resolution
                         of 24.
@@ -44,7 +45,10 @@ class Pianoroll(object):
         A merged and binarized numpy array (time_steps, 128) in shape is loaded into self.array.
         """
 
-        multitrack = Multitrack(filename=midi_file_path)
+        if use_custom_multitrack:
+            multitrack = CustomMultitrack(filename=midi_file_path)
+        else:
+            multitrack = Multitrack(filename=midi_file_path)
 
         multitrack.check_validity()
 

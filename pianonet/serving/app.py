@@ -10,26 +10,32 @@ from pianonet.model_inspection.performance_from_pianoroll import get_performance
 app = Flask(__name__)
 
 base_path = "/app/"
+
 # base_path = "/Users/angsten/PycharmProjects/pianonet"
 
 performances_path = os.path.join(base_path, 'data', 'performances')
+
 
 def get_random_midi_file_name():
     """
     Get a random midi file name that will not ever collide.
     """
+
     return str(random.randint(0, 10000000000000000000)) + ".midi"
+
 
 def get_performance_path(midi_file_name):
     """
-    Returns full path to performance midi file given a file name.
+    Returns full path to performaqnce midi file given a file name.
     """
 
     return os.path.join(performances_path, midi_file_name)
 
+
 @app.route('/')
 def alive():
     return 'OK'
+
 
 @app.route('/performances/', methods=['GET'])
 def get_performance():
@@ -56,6 +62,7 @@ def get_performance():
 
     with open(midi_file_path, 'rb') as midi_file:
         return send_from_directory(performances_path, performance_midi_file_name)
+
 
 @app.route('/create-performance', methods=['POST'])
 def performance():
@@ -98,7 +105,8 @@ def performance():
 
     model_path = os.path.join(base_path, 'models', model_name)
 
-    input_pianoroll = Pianoroll(saved_seed_midi_file_path)
+    input_pianoroll = Pianoroll(saved_seed_midi_file_path, use_custom_multitrack=True)
+
     input_pianoroll.trim_silence_off_ends()
 
     final_pianoroll = get_performance_from_pianoroll(
